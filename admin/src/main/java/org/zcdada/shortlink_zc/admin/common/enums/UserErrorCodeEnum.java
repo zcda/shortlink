@@ -5,7 +5,9 @@ import org.zcdada.shortlink_zc.admin.common.convention.errorcode.IErrorCode;
 public enum UserErrorCodeEnum implements IErrorCode {
 
     USER_NULL("B000200","用户记录不存在"),
-    USER_EXIT("B000201","用户记录已存在");
+    USERNAME_EXIT("B000201","用户名已存在"),
+    USE_SAVE_ERROR("B000203","用户记录失败"),
+    USER_EXIT("B000202","用户记录已存在");
 
     private final String code;
 
