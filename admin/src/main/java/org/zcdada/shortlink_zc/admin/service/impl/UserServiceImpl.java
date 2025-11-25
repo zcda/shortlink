@@ -1,7 +1,9 @@
 package org.zcdada.shortlink_zc.admin.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
@@ -9,17 +11,23 @@ import org.redisson.api.RBloomFilter;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.zcdada.shortlink_zc.admin.common.convention.exception.ClientException;
 import org.zcdada.shortlink_zc.admin.dao.entity.UserDO;
 import org.zcdada.shortlink_zc.admin.dao.mapper.UserMapper;
+import org.zcdada.shortlink_zc.admin.dto.req.UserLoginReqDTO;
 import org.zcdada.shortlink_zc.admin.dto.req.UserRegisterReqDTO;
+import org.zcdada.shortlink_zc.admin.dto.req.UserUpdateDTO;
+import org.zcdada.shortlink_zc.admin.dto.resp.UserLoginRespDTO;
 import org.zcdada.shortlink_zc.admin.dto.resp.UserRespDTO;
 import org.zcdada.shortlink_zc.admin.service.UserService;
 
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
 import static org.zcdada.shortlink_zc.admin.common.constant.RedisCacheConstant.LOCK_USER_REGISTER_KEY;
-import static org.zcdada.shortlink_zc.admin.common.enums.UserErrorCodeEnum.USERNAME_EXIT;
-import static org.zcdada.shortlink_zc.admin.common.enums.UserErrorCodeEnum.USE_SAVE_ERROR;
+import static org.zcdada.shortlink_zc.admin.common.enums.UserErrorCodeEnum.*;
 
 /**
 * @Author: zcdada
@@ -33,6 +41,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
     private final RBloomFilter<String> userRegisterCachePenetrationBloomFilter;
 
     private final RedissonClient redissonClient;
+
+    private final StringRedisTemplate stringRedisTemplate;
 
 
     @Override
@@ -78,5 +88,57 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
 
 
 
+    }
+
+    @Override
+    public String getPassword(String username) {
+        LambdaQueryWrapper<UserDO> queryWrapper = Wrappers.lambdaQuery(UserDO.class)
+                .eq(UserDO::getUsername, username);
+        UserDO userDO = baseMapper.selectOne(queryWrapper);
+        return userDO.getPassword();
+    }
+
+    @Override
+    public UserLoginRespDTO login(UserLoginReqDTO requestParam) {
+        LambdaQueryWrapper<UserDO> eq = Wrappers.lambdaQuery(UserDO.class)
+                .eq(UserDO::getUsername, requestParam.getUsername())
+                .eq(UserDO::getPassword, requestParam.getPassword())
+                .eq(UserDO::getDelFlag, 0);
+        UserDO userDO = baseMapper.selectOne(eq);
+        if (userDO == null) {
+            throw new ClientException(USER_NULL);
+        }
+        //预防重复登录
+        if (stringRedisTemplate.hasKey("login_"+requestParam.getUsername())) {
+            throw new ClientException("用户已经登录");
+        }
+
+        //设置token
+        String uuid = UUID.randomUUID().toString();
+        stringRedisTemplate.opsForHash().put("login_"+requestParam.getUsername(), uuid, JSON.toJSONString(userDO));
+        stringRedisTemplate.expire("login_"+requestParam.getUsername(),30, TimeUnit.MINUTES);
+
+        return new UserLoginRespDTO(uuid);
+    }
+
+    @Override
+    public Boolean checkLogin(String username, String token) {
+        return stringRedisTemplate.opsForHash().get("login_" + username, token)!=null;
+    }
+
+    @Override
+    public void logout(String username, String token) {
+        if(!checkLogin(username,token)){
+            throw new ClientException("用户未登录");
+        }
+        stringRedisTemplate.opsForHash().delete("login_" + username);
+    }
+
+    @Override
+    public void update(UserUpdateDTO requestParam) {
+        //todo 验证当前用户是否为登录用户
+        LambdaUpdateWrapper<UserDO> updateWrapper = Wrappers.lambdaUpdate(UserDO.class)
+                .eq(UserDO::getUsername, requestParam.getUsername());
+        baseMapper.update(BeanUtil.toBean(requestParam,UserDO.class),updateWrapper);
     }
 }
