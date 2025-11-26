@@ -78,6 +78,11 @@ public class UserController {
         return Results.success(userService.login(requestParam));
     }
 
+    /**
+     * @Author: zcdada
+     * @Description: todo 登录后应该就不用传username了,可以在上下文中获取,通过将 token和username放在请求的header里面
+     * @DateTime: 2025/11/26 16:19
+     */
     @GetMapping("/api/short-link/v1/user/login")
     public Result<Boolean> checkLogin(@RequestParam("token") String token,@RequestParam("username")String username){
         return Results.success(userService.checkLogin(username,token));
