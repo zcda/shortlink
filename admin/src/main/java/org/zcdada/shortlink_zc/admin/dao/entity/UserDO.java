@@ -1,12 +1,10 @@
 package org.zcdada.shortlink_zc.admin.dao.entity;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
+import org.zcdada.shortlink_zc.admin.common.database.BaseDO;
 
 import java.io.Serializable;
-import java.util.Date;
 
 /**
  * (t_user)表实体类
@@ -16,7 +14,7 @@ import java.util.Date;
  */
 @Data
 @TableName("t_user")
-public class UserDO implements Serializable {
+public class UserDO  extends BaseDO implements Serializable{
 //ID
     private Long id;
 //用户名
@@ -31,19 +29,6 @@ public class UserDO implements Serializable {
     private String mail;
 //注销时间戳
     private Long deletionTime;
-
-    @TableField(fill = FieldFill.INSERT)
-    private Date createTime;
-
-
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private Date updateTime;
-
-
-//删除表示 0:未删除,1:已经删除
-@TableField(fill = FieldFill.INSERT)
-    private Integer delFlag;
-
 
 }
 

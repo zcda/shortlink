@@ -1,9 +1,11 @@
 package org.zcdada.shortlink_zc.admin.dao.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-
-import java.util.Date;
+import lombok.NoArgsConstructor;
+import org.zcdada.shortlink_zc.admin.common.database.BaseDO;
 
 /**
  * 短链接分组实体
@@ -13,7 +15,10 @@ import java.util.Date;
  */
 @Data
 @TableName("t_group")
-public class GroupDO {
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class GroupDO  extends BaseDO {
 //ID
     private Long id;
 //分组标识
@@ -24,13 +29,6 @@ public class GroupDO {
     private String username;
 //分组排序
     private Integer sortOrder;
-//创建时间
-    private Date createTime;
-//修改时间
-    private Date updateTime;
-//删除标识 0：未删除 1：已删除
-    private Integer delFlag;
-
 
 }
 
