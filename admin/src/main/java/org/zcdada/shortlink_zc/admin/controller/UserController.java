@@ -31,7 +31,7 @@ public class UserController {
 /**
  * @Author: zcdada
  * @Description: 获取用户未脱敏信息
- * @DateTime: 2025/11/25 16:34
+ * @DateTime:  2025/11/25 16:34
  */
     @GetMapping("/api/short-link/v1/actual/user/{username}")
     public Result<UserRespRealDTO> getActualUserByUsername(@PathVariable("username") String username){
