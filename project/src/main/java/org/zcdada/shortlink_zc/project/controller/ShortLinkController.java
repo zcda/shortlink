@@ -1,0 +1,36 @@
+package org.zcdada.shortlink_zc.project.controller;
+
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.zcdada.shortlink_zc.project.common.convention.result.Result;
+import org.zcdada.shortlink_zc.project.common.convention.result.Results;
+import org.zcdada.shortlink_zc.project.dto.req.ShortLinkCreateReqDTO;
+import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkCreateRespDTO;
+import org.zcdada.shortlink_zc.project.service.ShortLinkService;
+
+
+/**
+ * @Author: zcdada
+ * @Description: 短链接的controller
+ * @DateTime: 2025/11/27 16:52
+ */
+@RestController
+@RequiredArgsConstructor
+public class ShortLinkController {
+
+    private final ShortLinkService shortLinkService;
+
+    /**
+     * @Author: zcdada
+     * @Description: 新增 短链接
+     * @DateTime: 2025/11/26 16:15
+     */
+    @PostMapping("/api/short-link/v1/create")
+    public Result<ShortLinkCreateRespDTO> createShortLink(@RequestBody ShortLinkCreateReqDTO requestParam){
+        return Results.success(shortLinkService.createShortLink(requestParam));
+    }
+
+}
