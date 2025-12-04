@@ -11,6 +11,7 @@ import org.redisson.api.RBloomFilter;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.zcdada.shortlink_zc.admin.common.convention.exception.ClientException;
@@ -73,11 +74,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
         RLock lock = redissonClient.getLock(LOCK_USER_REGISTER_KEY + requestParam.getUsername());
         try{
             if (lock.tryLock()) {
-                int insert = baseMapper.insert(BeanUtil.toBean(requestParam, UserDO.class));
-
-                if(insert < 1) {
-                    throw new ClientException(USE_SAVE_ERROR);
+                try {
+                    //redis 布隆过滤器 被缓存清空的情况
+                    int insert=baseMapper.insert(BeanUtil.toBean(requestParam, UserDO.class));
+                    if(insert < 1) {
+                        throw new ClientException(USE_SAVE_ERROR);
+                    }
+                }catch (DuplicateKeyException e){
+                    throw new ClientException(USER_EXIT);
                 }
+
                 userRegisterCachePenetrationBloomFilter.add(requestParam.getUsername());
                 return;
             }
