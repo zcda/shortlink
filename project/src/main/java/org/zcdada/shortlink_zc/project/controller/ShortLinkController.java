@@ -3,17 +3,17 @@ package org.zcdada.shortlink_zc.project.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.zcdada.shortlink_zc.project.common.convention.result.Result;
 import org.zcdada.shortlink_zc.project.common.convention.result.Results;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkCreateReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkPageReqDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkCreateRespDTO;
+import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkGroupRespDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkPageRespDTO;
 import org.zcdada.shortlink_zc.project.service.ShortLinkService;
+
+import java.util.List;
 
 
 /**
@@ -46,5 +46,14 @@ public class ShortLinkController {
     @GetMapping("/api/short-link/v1/page")
     public Result<IPage<ShortLinkPageRespDTO>> pageShortLink(ShortLinkPageReqDTO requestParam){
         return Results.success(shortLinkService.pageShortLink(requestParam));
+    }
+/**
+ * @Author: zcdada
+ * @Description: 查询分组id下的短链接数量
+ * @DateTime: 2025/12/4 12:53
+ */
+    @GetMapping("/api/short-link/v1/count")
+    public Result<ShortLinkGroupRespDTO> shortLinkCount(@RequestParam("requestParam")List<String> requestParam){
+        return Results.success(shortLinkService.shortLinkCount(requestParam));
     }
 }

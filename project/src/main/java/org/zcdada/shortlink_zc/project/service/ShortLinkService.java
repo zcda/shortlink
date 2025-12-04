@@ -6,7 +6,10 @@ import org.zcdada.shortlink_zc.project.dao.entity.ShortLinkDO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkCreateReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkPageReqDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkCreateRespDTO;
+import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkGroupRespDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkPageRespDTO;
+
+import java.util.List;
 
 
 public interface ShortLinkService extends IService<ShortLinkDO> {
@@ -23,4 +26,11 @@ public interface ShortLinkService extends IService<ShortLinkDO> {
      * @DateTime: 2025/11/28 15:50
      */
     IPage<ShortLinkPageRespDTO> pageShortLink(ShortLinkPageReqDTO requestParam);
+
+    /**
+     * @Author: zcdada
+     * @Description: 查询对应gid下的count
+     * @DateTime: 2025/12/4 12:55
+     */
+    ShortLinkGroupRespDTO shortLinkCount(List<String> requestParam);
 }
