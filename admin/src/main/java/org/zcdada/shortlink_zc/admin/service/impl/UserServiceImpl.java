@@ -17,11 +17,13 @@ import org.springframework.stereotype.Service;
 import org.zcdada.shortlink_zc.admin.common.convention.exception.ClientException;
 import org.zcdada.shortlink_zc.admin.dao.entity.UserDO;
 import org.zcdada.shortlink_zc.admin.dao.mapper.UserMapper;
+import org.zcdada.shortlink_zc.admin.dto.req.ShortLinkGroupSaveReqDTO;
 import org.zcdada.shortlink_zc.admin.dto.req.UserLoginReqDTO;
 import org.zcdada.shortlink_zc.admin.dto.req.UserRegisterReqDTO;
 import org.zcdada.shortlink_zc.admin.dto.req.UserUpdateDTO;
 import org.zcdada.shortlink_zc.admin.dto.resp.UserLoginRespDTO;
 import org.zcdada.shortlink_zc.admin.dto.resp.UserRespDTO;
+import org.zcdada.shortlink_zc.admin.service.GroupService;
 import org.zcdada.shortlink_zc.admin.service.UserService;
 
 import java.util.UUID;
@@ -44,6 +46,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
     private final RedissonClient redissonClient;
 
     private final StringRedisTemplate stringRedisTemplate;
+
+    private final GroupService groupService;
 
 
     @Override
@@ -85,6 +89,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
                 }
 
                 userRegisterCachePenetrationBloomFilter.add(requestParam.getUsername());
+                groupService.saveGroup(requestParam.getUsername(),new ShortLinkGroupSaveReqDTO("默认分组"));
                 return;
             }
             throw new ClientException(USERNAME_EXIT);

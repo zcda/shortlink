@@ -22,6 +22,7 @@ public interface GroupService extends IService<GroupDO> {
      */
     void saveGroup(ShortLinkGroupSaveReqDTO requestParam);
 
+    void saveGroup(String username,ShortLinkGroupSaveReqDTO requestParam);
     /**
      * @Author: zcdada
      * @Description: 查询当前登录用户的所有短链接分组
