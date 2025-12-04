@@ -131,7 +131,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
         if(!checkLogin(username,token)){
             throw new ClientException("用户未登录");
         }
-        stringRedisTemplate.opsForHash().delete("login_" + username);
+        stringRedisTemplate.opsForHash().delete("login_" + username,token);
     }
 
     @Override

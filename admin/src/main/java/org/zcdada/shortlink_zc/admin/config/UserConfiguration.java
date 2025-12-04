@@ -1,6 +1,5 @@
 package org.zcdada.shortlink_zc.admin.config;
 
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,10 +19,8 @@ public class UserConfiguration {
     public FilterRegistrationBean<UserTransmitFilter> globalUserTransmitFilter(StringRedisTemplate stringRedisTemplate) {
         FilterRegistrationBean<UserTransmitFilter> registration = new FilterRegistrationBean<>();
 
-
-
         registration.setFilter(new UserTransmitFilter(stringRedisTemplate));
-        registration.addUrlPatterns("/api/short-link/v1/group","/api/short-link/v1/group/*");
+        registration.addUrlPatterns("/*");
         registration.setOrder(0);
         return registration;
     }

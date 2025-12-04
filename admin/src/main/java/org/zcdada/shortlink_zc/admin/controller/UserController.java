@@ -21,12 +21,12 @@ public class UserController {
     /**
     * @Author: zcdada
     * @Description: 根据用户名查询信息
+     * todo 这个接口不应该存在,只能查询用户自己的信息
     * @DateTime: 2025/11/21 16:19
     */
     @GetMapping("/api/short-link/admin/v1/user/{username}")
     public Result<UserRespDTO> getUserByUsername(@PathVariable("username") String username){
         return Results.success(userService.getUserByUserName(username));
-
     }
 /**
  * @Author: zcdada

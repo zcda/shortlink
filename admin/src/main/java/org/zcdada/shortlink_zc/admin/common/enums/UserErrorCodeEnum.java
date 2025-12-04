@@ -4,6 +4,9 @@ import org.zcdada.shortlink_zc.admin.common.convention.errorcode.IErrorCode;
 
 public enum UserErrorCodeEnum implements IErrorCode {
 
+    USER_TOKEN_FAIL("A00200","用户TOKEN验证失败"),
+
+
     USER_NULL("B000200","用户记录不存在"),
     USERNAME_EXIT("B000201","用户名已存在"),
     USE_SAVE_ERROR("B000203","用户记录失败"),
