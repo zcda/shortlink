@@ -1,6 +1,9 @@
 package org.zcdada.shortlink_zc.project.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import groovy.util.logging.Slf4j;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +13,9 @@ import org.zcdada.shortlink_zc.project.common.convention.exception.ServiceExcept
 import org.zcdada.shortlink_zc.project.dao.entity.ShortLinkDO;
 import org.zcdada.shortlink_zc.project.dao.mapper.ShortLinkMapper;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkCreateReqDTO;
+import org.zcdada.shortlink_zc.project.dto.req.ShortLinkPageReqDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkCreateRespDTO;
+import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkPageRespDTO;
 import org.zcdada.shortlink_zc.project.service.ShortLinkService;
 import org.zcdada.shortlink_zc.project.toolkit.RandomGenerator;
 
@@ -51,6 +56,19 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
         }
 
         return BeanUtil.toBean(shortLinkDO, ShortLinkCreateRespDTO.class);
+    }
+
+    @Override
+    public IPage<ShortLinkPageRespDTO> pageShortLink(ShortLinkPageReqDTO requestParam) {
+        LambdaQueryWrapper<ShortLinkDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkDO.class)
+                .eq(ShortLinkDO::getGid, requestParam.getGid())
+                .eq(ShortLinkDO::getEnableStatus, 0)
+                .eq(ShortLinkDO::getDelFlag, 0)
+                .orderByDesc(ShortLinkDO::getCreateTime);
+
+        IPage<ShortLinkDO> resultPage = baseMapper.selectPage(requestParam, queryWrapper);
+
+        return resultPage.convert(each -> BeanUtil.toBean(each, ShortLinkPageRespDTO.class));
     }
 
     private String getShortLink(ShortLinkCreateReqDTO requestParam) {

@@ -1,14 +1,18 @@
 package org.zcdada.shortlink_zc.project.controller;
 
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.zcdada.shortlink_zc.project.common.convention.result.Result;
 import org.zcdada.shortlink_zc.project.common.convention.result.Results;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkCreateReqDTO;
+import org.zcdada.shortlink_zc.project.dto.req.ShortLinkPageReqDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkCreateRespDTO;
+import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkPageRespDTO;
 import org.zcdada.shortlink_zc.project.service.ShortLinkService;
 
 
@@ -33,4 +37,14 @@ public class ShortLinkController {
         return Results.success(shortLinkService.createShortLink(requestParam));
     }
 
+    /**
+     * @Author: zcdada
+     * @Description: 接的是 qury类型的参数,也就是直接跟在连接后面的
+     * todo  restful风格的 get请求的参数 使用qury也就是拼接在连接后面的参数,不能添加requestBody注解
+     * @DateTime: 2025/12/4 12:04
+     */
+    @GetMapping("/api/short-link/v1/page")
+    public Result<IPage<ShortLinkPageRespDTO>> pageShortLink(ShortLinkPageReqDTO requestParam){
+        return Results.success(shortLinkService.pageShortLink(requestParam));
+    }
 }
