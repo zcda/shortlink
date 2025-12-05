@@ -2,6 +2,8 @@ package org.zcdada.shortlink_zc.project.controller;
 
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.zcdada.shortlink_zc.project.common.convention.result.Result;
@@ -28,6 +30,15 @@ public class ShortLinkController {
 
     private final ShortLinkService shortLinkService;
 
+    /**
+     * @Author: zcdada
+     * @Description: 核心功能 短链接跳转
+     * @DateTime: 2025/12/5 17:16
+     */
+    @GetMapping("/{short-uri}")
+    public void restoreUrl(@PathVariable("short-uri") String shortUri, ServletRequest request, ServletResponse response) {
+        shortLinkService.restoreUrl(shortUri, request, response);
+    }
     /**
      * @Author: zcdada
      * @Description: 新增 短链接

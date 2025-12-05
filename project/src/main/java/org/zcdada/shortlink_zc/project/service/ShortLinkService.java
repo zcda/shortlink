@@ -2,6 +2,8 @@ package org.zcdada.shortlink_zc.project.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import org.zcdada.shortlink_zc.project.dao.entity.ShortLinkDO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkCreateReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkPageReqDTO;
@@ -43,4 +45,10 @@ public interface ShortLinkService extends IService<ShortLinkDO> {
     ShortLinkGroupRespDTO shortLinkCount(List<String> requestParam);
 
 
+    /**
+     * @Author: zcdada
+     * @Description: 短链接跳转
+     * @DateTime: 2025/12/5 17:17
+     */
+    void restoreUrl(String shortUri, ServletRequest request, ServletResponse response);
 }
