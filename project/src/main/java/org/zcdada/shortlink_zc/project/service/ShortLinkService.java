@@ -48,7 +48,7 @@ public interface ShortLinkService extends IService<ShortLinkDO> {
     /**
      * @Author: zcdada
      * @Description: 短链接跳转
-     * @DateTime: 2025/12/5 17:17
+     * @DateTime: 2025/12/5 19:40
      */
     void restoreUrl(String shortUri, ServletRequest request, ServletResponse response);
 }
