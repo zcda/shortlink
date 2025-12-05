@@ -1,21 +1,20 @@
 package org.zcdada.shortlink_zc.admin.remote.dto.req;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.util.Date;
 
+/**
+ * @Author: zcdada
+ * @Description: 修改短链接所需参数
+ * @DateTime: 2025/12/5 10:54
+ */
 @Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class ShortLinkCreateReqDTO {
+public class ShortLinkUpdateReqDTO {
 
-    //域名
-    private String domain;
+    //完整短链接
+    private String fullShortUrl;
 
     //原始链接
     private String originUrl;
@@ -26,8 +25,6 @@ public class ShortLinkCreateReqDTO {
     //有效期类型 0：永久有效 1：自定义
     private Integer validDateType;
 
-    //创建类型 0：接口创建 1：控制台创建
-    private Integer createdType;
 
     //有效期
     @JsonFormat(pattern = "yyyy-MM-DD HH:mm:ss",timezone = "GMT+8")

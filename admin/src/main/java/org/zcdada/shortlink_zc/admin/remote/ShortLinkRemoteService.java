@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.zcdada.shortlink_zc.admin.common.convention.result.Result;
 import org.zcdada.shortlink_zc.admin.remote.dto.req.ShortLinkCreateReqDTO;
 import org.zcdada.shortlink_zc.admin.remote.dto.req.ShortLinkPageReqDTO;
+import org.zcdada.shortlink_zc.admin.remote.dto.req.ShortLinkUpdateReqDTO;
 import org.zcdada.shortlink_zc.admin.remote.dto.resp.ShortLinkCreateRespDTO;
 import org.zcdada.shortlink_zc.admin.remote.dto.resp.ShortLinkGroupRemoteRespDTO;
 import org.zcdada.shortlink_zc.admin.remote.dto.resp.ShortLinkPageRespDTO;
@@ -50,5 +51,9 @@ public interface ShortLinkRemoteService {
         return JSON.parseObject(resultPageStr, new TypeReference<>() {
         });
 
+    }
+
+    default void updateShortLink(ShortLinkUpdateReqDTO requestParam) {
+        HttpUtil.post("http://127.0.0.1:8001/api/short-link/v1/update",JSON.toJSONString(requestParam));
     }
 }
