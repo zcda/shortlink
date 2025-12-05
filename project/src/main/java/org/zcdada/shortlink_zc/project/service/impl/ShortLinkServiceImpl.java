@@ -40,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -170,48 +171,62 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
         String serverName = request.getServerName();
         String fullShortLink = serverName+"/" + shortUri;
 
-        String ori = stringRedisTemplate.opsForValue().get(RedisKeyConstant.GOTO_SHORT_LINK_KEY + fullShortLink);
+        String ori = stringRedisTemplate.opsForValue().get(String.format(RedisKeyConstant.GOTO_SHORT_LINK_KEY,fullShortLink));
         if (StrUtil.isNotBlank(ori)) {
             ((HttpServletResponse)response).sendRedirect(ori);
-        }else{
-            RLock lock = redissonClient.getLock(RedisKeyConstant.LOCK_GOTO_SHORT_LINK_KEY + fullShortLink);
-            lock.lock();
+            return;
+        }
 
-            ori = stringRedisTemplate.opsForValue().get(RedisKeyConstant.GOTO_SHORT_LINK_KEY + fullShortLink);
-            if (StrUtil.isNotBlank(ori)) {
-                ((HttpServletResponse)response).sendRedirect(ori);
+        if (!shortLinkCachePenetrationBloomFilter.contains(fullShortLink)) {
+            return;
+        }
+
+        String s = stringRedisTemplate.opsForValue().get(String.format(RedisKeyConstant.GOTO_NULL_LINK_KEY, fullShortLink));
+        if (StrUtil.isNotBlank(s)) {
+            return;
+        }
+
+
+        RLock lock = redissonClient.getLock(String.format(RedisKeyConstant.LOCK_GOTO_SHORT_LINK_KEY,fullShortLink));
+        lock.lock();
+
+        ori = stringRedisTemplate.opsForValue().get(String.format(RedisKeyConstant.GOTO_SHORT_LINK_KEY,fullShortLink));
+        if (StrUtil.isNotBlank(ori)) {
+            ((HttpServletResponse)response).sendRedirect(ori);
+            return;
+        }
+
+        try{
+
+            LambdaQueryWrapper<ShortLinkGotoDO> gotoDOLambdaQueryWrapper = Wrappers.lambdaQuery(ShortLinkGotoDO.class)
+                    .eq(ShortLinkGotoDO::getFullShortUrl, fullShortLink);
+            ShortLinkGotoDO shortLinkGotoDO = shortLinkGotoMapper.selectOne(gotoDOLambdaQueryWrapper);
+
+            if(shortLinkGotoDO==null||!shortLinkCachePenetrationBloomFilter.contains(fullShortLink)){
+                //做风控 可能是有人恶意请求错误短链接
+                // 把错误的也放到缓存中，防止一直访问数据库
+                stringRedisTemplate.opsForValue().set(String.format(RedisKeyConstant.GOTO_NULL_LINK_KEY,fullShortLink),"-",5, TimeUnit.MINUTES);
                 return;
             }
 
-            try{
-
-                LambdaQueryWrapper<ShortLinkGotoDO> gotoDOLambdaQueryWrapper = Wrappers.lambdaQuery(ShortLinkGotoDO.class)
-                        .eq(ShortLinkGotoDO::getFullShortUrl, fullShortLink);
-                ShortLinkGotoDO shortLinkGotoDO = shortLinkGotoMapper.selectOne(gotoDOLambdaQueryWrapper);
-
-                if(shortLinkGotoDO==null||!shortLinkCachePenetrationBloomFilter.contains(fullShortLink)){
-                    //做风控 可能是有人恶意请求错误短链接
-                    return;
-                }
-
-                LambdaQueryWrapper<ShortLinkDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkDO.class)
-                        .eq(ShortLinkDO::getFullShortUrl, fullShortLink)
-                        .eq(ShortLinkDO::getDelFlag, 0)
-                        .eq(ShortLinkDO::getEnableStatus, 0)
-                        .eq(ShortLinkDO::getGid, shortLinkGotoDO.getGid());
-                ShortLinkDO shortLinkDO = baseMapper.selectOne(queryWrapper);
+            LambdaQueryWrapper<ShortLinkDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkDO.class)
+                    .eq(ShortLinkDO::getFullShortUrl, fullShortLink)
+                    .eq(ShortLinkDO::getDelFlag, 0)
+                    .eq(ShortLinkDO::getEnableStatus, 0)
+                    .eq(ShortLinkDO::getGid, shortLinkGotoDO.getGid());
+            ShortLinkDO shortLinkDO = baseMapper.selectOne(queryWrapper);
 
 
 
-                stringRedisTemplate.opsForValue().set(RedisKeyConstant.GOTO_SHORT_LINK_KEY + fullShortLink,shortLinkDO.getOriginUrl());
-                ((HttpServletResponse)response).sendRedirect(shortLinkDO.getOriginUrl());
-            }finally {
-                lock.unlock();
-            }
-
-
-
+            stringRedisTemplate.opsForValue().set(String.format(RedisKeyConstant.GOTO_SHORT_LINK_KEY,fullShortLink),shortLinkDO.getOriginUrl());
+            ((HttpServletResponse)response).sendRedirect(shortLinkDO.getOriginUrl());
+        }finally {
+            lock.unlock();
         }
+
+
+
+
 
 
 

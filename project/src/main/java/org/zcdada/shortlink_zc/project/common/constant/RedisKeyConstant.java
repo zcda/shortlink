@@ -15,4 +15,12 @@ public class RedisKeyConstant {
      * @DateTime: 2025/12/5 19:29
      */
     public static final String LOCK_GOTO_SHORT_LINK_KEY = "lock_short_link_goto_%s";
+
+
+    /*
+     * @Author: zcdada
+     * @Description:  短链接跳转锁 key
+     * @DateTime: 2025/12/5 19:29
+     */
+    public static final String GOTO_NULL_LINK_KEY = "lock_short_link_goto_%s";
 }
