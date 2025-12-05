@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import org.zcdada.shortlink_zc.project.dao.entity.ShortLinkDO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkCreateReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkPageReqDTO;
+import org.zcdada.shortlink_zc.project.dto.req.ShortLinkUpdateReqDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkCreateRespDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkGroupRespDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkPageRespDTO;
@@ -20,6 +21,13 @@ public interface ShortLinkService extends IService<ShortLinkDO> {
      */
     ShortLinkCreateRespDTO createShortLink(ShortLinkCreateReqDTO requestParam);
 
+/**
+ * @Author: zcdada
+ * @Description: 修改短链接
+ * @DateTime: 2025/12/5 10:57
+ */
+    void updateShortLink(ShortLinkUpdateReqDTO requestParam);
+
     /**
      * @Author: zcdada
      * @Description: 分页查询短链接
@@ -33,4 +41,6 @@ public interface ShortLinkService extends IService<ShortLinkDO> {
      * @DateTime: 2025/12/4 12:55
      */
     ShortLinkGroupRespDTO shortLinkCount(List<String> requestParam);
+
+
 }

@@ -8,6 +8,7 @@ import org.zcdada.shortlink_zc.project.common.convention.result.Result;
 import org.zcdada.shortlink_zc.project.common.convention.result.Results;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkCreateReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkPageReqDTO;
+import org.zcdada.shortlink_zc.project.dto.req.ShortLinkUpdateReqDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkCreateRespDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkGroupRespDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkPageRespDTO;
@@ -35,6 +36,17 @@ public class ShortLinkController {
     @PostMapping("/api/short-link/v1/create")
     public Result<ShortLinkCreateRespDTO> createShortLink(@RequestBody ShortLinkCreateReqDTO requestParam){
         return Results.success(shortLinkService.createShortLink(requestParam));
+    }
+
+    /**
+     * @Author: zcdada
+     * @Description: 修改 短链接
+     * @DateTime: 2025/11/26 16:15
+     */
+    @PostMapping("/api/short-link/v1/update")
+    public Result<Void> updateShortLink(@RequestBody ShortLinkUpdateReqDTO requestParam){
+        shortLinkService.updateShortLink(requestParam);
+        return Results.success();
     }
 
     /**
