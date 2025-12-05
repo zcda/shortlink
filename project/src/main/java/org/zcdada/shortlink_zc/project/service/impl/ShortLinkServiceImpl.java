@@ -34,6 +34,7 @@ import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkCreateRespDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkGroupRespDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkPageRespDTO;
 import org.zcdada.shortlink_zc.project.service.ShortLinkService;
+import org.zcdada.shortlink_zc.project.toolkit.LinkUtil;
 import org.zcdada.shortlink_zc.project.toolkit.RandomGenerator;
 
 import java.util.HashMap;
@@ -87,6 +88,13 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
             System.out.println(e.getMessage());
             throw new ServiceException("重复短链接,请稍后再试试");
         }
+        stringRedisTemplate.opsForValue().set(String.format(RedisKeyConstant.GOTO_SHORT_LINK_KEY,
+                fullShortUrl),
+                shortLinkDO.getOriginUrl(),
+                LinkUtil.getLinkCacheValidTime(shortLinkDO.getValidDate()),
+                TimeUnit.MILLISECONDS
+        );
+
         shortLinkCachePenetrationBloomFilter.add(fullShortUrl);
         return BeanUtil.toBean(shortLinkDO, ShortLinkCreateRespDTO.class);
     }
