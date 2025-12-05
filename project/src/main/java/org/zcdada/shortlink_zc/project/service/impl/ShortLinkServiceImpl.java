@@ -37,10 +37,7 @@ import org.zcdada.shortlink_zc.project.service.ShortLinkService;
 import org.zcdada.shortlink_zc.project.toolkit.LinkUtil;
 import org.zcdada.shortlink_zc.project.toolkit.RandomGenerator;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -224,10 +221,27 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
                     .eq(ShortLinkDO::getGid, shortLinkGotoDO.getGid());
             ShortLinkDO shortLinkDO = baseMapper.selectOne(queryWrapper);
 
+            if (shortLinkDO!=null){
+                if (shortLinkDO.getValidDate()!=null&&shortLinkDO.getValidDate().before(new Date())){
+                    //数据过期
+                    stringRedisTemplate.opsForValue().set(String.format(RedisKeyConstant.GOTO_NULL_LINK_KEY,fullShortLink),"-",5, TimeUnit.MINUTES);
+                    return;
+                }
 
 
-            stringRedisTemplate.opsForValue().set(String.format(RedisKeyConstant.GOTO_SHORT_LINK_KEY,fullShortLink),shortLinkDO.getOriginUrl());
-            ((HttpServletResponse)response).sendRedirect(shortLinkDO.getOriginUrl());
+                stringRedisTemplate.opsForValue().set(String.format(RedisKeyConstant.GOTO_SHORT_LINK_KEY,
+                                shortLinkDO.getFullShortUrl()),
+                        shortLinkDO.getOriginUrl(),
+                        LinkUtil.getLinkCacheValidTime(shortLinkDO.getValidDate()),
+                        TimeUnit.MILLISECONDS
+                );
+                ((HttpServletResponse)response).sendRedirect(shortLinkDO.getOriginUrl());
+
+
+            }
+
+
+
         }finally {
             lock.unlock();
         }
