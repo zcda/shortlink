@@ -183,11 +183,13 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
         }
 
         if (!shortLinkCachePenetrationBloomFilter.contains(fullShortLink)) {
+            ((HttpServletResponse)response).sendRedirect("/page/notfound");
             return;
         }
 
         String s = stringRedisTemplate.opsForValue().get(String.format(RedisKeyConstant.GOTO_NULL_LINK_KEY, fullShortLink));
         if (StrUtil.isNotBlank(s)) {
+            ((HttpServletResponse)response).sendRedirect("/page/notfound");
             return;
         }
 
@@ -211,6 +213,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
                 //做风控 可能是有人恶意请求错误短链接
                 // 把错误的也放到缓存中，防止一直访问数据库
                 stringRedisTemplate.opsForValue().set(String.format(RedisKeyConstant.GOTO_NULL_LINK_KEY,fullShortLink),"-",5, TimeUnit.MINUTES);
+                ((HttpServletResponse)response).sendRedirect("/page/notfound");
                 return;
             }
 
@@ -225,6 +228,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
                 if (shortLinkDO.getValidDate()!=null&&shortLinkDO.getValidDate().before(new Date())){
                     //数据过期
                     stringRedisTemplate.opsForValue().set(String.format(RedisKeyConstant.GOTO_NULL_LINK_KEY,fullShortLink),"-",5, TimeUnit.MINUTES);
+                    ((HttpServletResponse)response).sendRedirect("/page/notfound");
                     return;
                 }
 
@@ -237,21 +241,10 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
                 );
                 ((HttpServletResponse)response).sendRedirect(shortLinkDO.getOriginUrl());
 
-
             }
-
-
-
         }finally {
             lock.unlock();
         }
-
-
-
-
-
-
-
     }
 
     private String getShortLink(ShortLinkCreateReqDTO requestParam) {
