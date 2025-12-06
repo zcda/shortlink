@@ -34,6 +34,7 @@ import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkCreateRespDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkGroupRespDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkPageRespDTO;
 import org.zcdada.shortlink_zc.project.service.ShortLinkService;
+import org.zcdada.shortlink_zc.project.service.UrlService;
 import org.zcdada.shortlink_zc.project.toolkit.LinkUtil;
 import org.zcdada.shortlink_zc.project.toolkit.RandomGenerator;
 
@@ -53,6 +54,8 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
 
     private final RedissonClient redissonClient;
 
+    private final UrlService urlService;
+
     @Override
     public ShortLinkCreateRespDTO createShortLink(ShortLinkCreateReqDTO requestParam) {
         // todo 检查是否为当前用户的gid且存在
@@ -70,6 +73,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
                 .validDate(requestParam.getValidDate())
                 .shortUri(shortLinkUri)
                 .fullShortUrl(fullShortUrl)
+                .favicon(urlService.getFavicon(requestParam.getOriginUrl()))
                 .build();
 
         ShortLinkGotoDO shortLinkGotoDO = ShortLinkGotoDO.builder().
