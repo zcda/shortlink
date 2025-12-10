@@ -66,6 +66,12 @@ public interface ShortLinkRemoteService {
         HttpUtil.post("http://127.0.0.1:8001/api/short-link/v1/recycle-bin/save",JSON.toJSONString(requestParam));
     }
 
+
+    default  void recoverRecycleBin(RecycleBinRecoverReqDTO requestParam) {
+        HttpUtil.post("http://127.0.0.1:8001/api/short-link/v1/recycle-bin/recover",JSON.toJSONString(requestParam));
+    }
+
+
     default Result<IPage<ShortLinkPageRespDTO>> pageShortLinkRecycleBin(RecycleBinPageReqDTO requestParam){
         Map<String,Object> requestMap = new HashMap<>();
         requestMap.put("gidList", requestParam.getGidList());
