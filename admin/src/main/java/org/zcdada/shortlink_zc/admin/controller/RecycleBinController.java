@@ -1,6 +1,8 @@
 package org.zcdada.shortlink_zc.admin.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -8,6 +10,8 @@ import org.zcdada.shortlink_zc.admin.common.convention.result.Result;
 import org.zcdada.shortlink_zc.admin.common.convention.result.Results;
 import org.zcdada.shortlink_zc.admin.remote.ShortLinkRemoteService;
 import org.zcdada.shortlink_zc.admin.remote.dto.req.RecycleBinSaveReqDTO;
+import org.zcdada.shortlink_zc.admin.remote.dto.resp.ShortLinkPageRespDTO;
+import org.zcdada.shortlink_zc.admin.service.RecycleBinService;
 
 /**
  * @Author: zcdada
@@ -20,6 +24,7 @@ public class RecycleBinController {
     ShortLinkRemoteService shortLinkRemoteService = new ShortLinkRemoteService() {
     };
 
+    private final RecycleBinService recycleBinService;
 
     /**
      * @Author: zcdada
@@ -30,5 +35,15 @@ public class RecycleBinController {
     public Result<Void> saveRecycleBin(@RequestBody RecycleBinSaveReqDTO requestParam){
         shortLinkRemoteService.saveRecycleBin(requestParam);
         return Results.success();
+    }
+
+    /**
+     * @Author: zcdada
+     * @Description: 查询用户回收站下的短链接（要先查用户分组）
+     * @DateTime: 2025/12/4 12:04
+     */
+    @GetMapping("/api/short-link/v1/admin/recycle-bin/page")
+    public Result<IPage<ShortLinkPageRespDTO>> pageShortLink(){
+        return recycleBinService.pageShortLink();
     }
 }
