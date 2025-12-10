@@ -10,6 +10,7 @@ import org.zcdada.shortlink_zc.admin.common.convention.result.Result;
 import org.zcdada.shortlink_zc.admin.common.convention.result.Results;
 import org.zcdada.shortlink_zc.admin.remote.ShortLinkRemoteService;
 import org.zcdada.shortlink_zc.admin.remote.dto.req.RecycleBinRecoverReqDTO;
+import org.zcdada.shortlink_zc.admin.remote.dto.req.RecycleBinRemoveReqDTO;
 import org.zcdada.shortlink_zc.admin.remote.dto.req.RecycleBinSaveReqDTO;
 import org.zcdada.shortlink_zc.admin.remote.dto.resp.ShortLinkPageRespDTO;
 import org.zcdada.shortlink_zc.admin.service.RecycleBinService;
@@ -60,5 +61,19 @@ public class RecycleBinController {
     @GetMapping("/api/short-link/admin/v1/recycle-bin/page")
     public Result<IPage<ShortLinkPageRespDTO>> pageShortLink(){
         return recycleBinService.pageShortLink();
+    }
+
+
+    /**
+     * @Author: zcdada
+     * @Description: 彻底删除短链接
+     * todo 只能删除当前登录用户的回收站的短链接
+     * 加个验证 判断requestparam中的gid和fullshortlink是不是当前用户所拥有的
+     * @DateTime: 2025/12/10 17:17
+     */
+    @PostMapping("/api/short-link/admin/v1/recycle-bin/remove")
+    public Result<Void> removeRecycleBin(@RequestBody RecycleBinRemoveReqDTO requestParam){
+        shortLinkRemoteService.removeRecycleBin(requestParam);
+        return Results.success();
     }
 }
