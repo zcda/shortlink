@@ -228,24 +228,23 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
                     .eq(ShortLinkDO::getGid, shortLinkGotoDO.getGid());
             ShortLinkDO shortLinkDO = baseMapper.selectOne(queryWrapper);
 
-            if (shortLinkDO!=null){
-                if (shortLinkDO.getValidDate()!=null&&shortLinkDO.getValidDate().before(new Date())){
+            if (shortLinkDO==null||(shortLinkDO.getValidDate()!=null&&shortLinkDO.getValidDate().before(new Date()))){
                     //数据过期
                     stringRedisTemplate.opsForValue().set(String.format(RedisKeyConstant.GOTO_NULL_LINK_KEY,fullShortLink),"-",5, TimeUnit.MINUTES);
                     ((HttpServletResponse)response).sendRedirect("/page/notfound");
                     return;
-                }
+            }
 
 
-                stringRedisTemplate.opsForValue().set(String.format(RedisKeyConstant.GOTO_SHORT_LINK_KEY,
+            stringRedisTemplate.opsForValue().set(String.format(RedisKeyConstant.GOTO_SHORT_LINK_KEY,
                                 shortLinkDO.getFullShortUrl()),
                         shortLinkDO.getOriginUrl(),
                         LinkUtil.getLinkCacheValidTime(shortLinkDO.getValidDate()),
                         TimeUnit.MILLISECONDS
                 );
-                ((HttpServletResponse)response).sendRedirect(shortLinkDO.getOriginUrl());
+            ((HttpServletResponse)response).sendRedirect(shortLinkDO.getOriginUrl());
 
-            }
+
         }finally {
             lock.unlock();
         }
