@@ -11,6 +11,7 @@ import org.zcdada.shortlink_zc.project.common.convention.result.Result;
 import org.zcdada.shortlink_zc.project.common.convention.result.Results;
 import org.zcdada.shortlink_zc.project.dto.req.RecycleBinPageReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.RecycleBinRecoverReqDTO;
+import org.zcdada.shortlink_zc.project.dto.req.RecycleBinRemoveReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.RecycleBinSaveReqDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkPageRespDTO;
 import org.zcdada.shortlink_zc.project.service.RecycleBinService;
@@ -55,6 +56,19 @@ public class RecycleBinController {
     @PostMapping("/api/short-link/v1/recycle-bin/recover")
     public Result<Void> recoverRecycleBin(@RequestBody RecycleBinRecoverReqDTO requestParam){
         recycleBinService.recoverRecycleBin(requestParam);
+        return Results.success();
+    }
+
+
+    /**
+     * @Author: zcdada
+     * @Description: 彻底删除短链接
+        todo 填充删除时间
+     * @DateTime: 2025/12/10 17:17
+     */
+    @PostMapping("/api/short-link/v1/recycle-bin/remove")
+    public Result<Void> removeRecycleBin(@RequestBody RecycleBinRemoveReqDTO requestParam){
+        recycleBinService.removeRecycleBin(requestParam);
         return Results.success();
     }
 }
