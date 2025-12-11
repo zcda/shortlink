@@ -1,6 +1,8 @@
 package org.zcdada.shortlink_zc.project.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.date.Week;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -23,8 +25,10 @@ import org.zcdada.shortlink_zc.project.common.constant.RedisKeyConstant;
 import org.zcdada.shortlink_zc.project.common.convention.exception.ClientException;
 import org.zcdada.shortlink_zc.project.common.convention.exception.ServiceException;
 import org.zcdada.shortlink_zc.project.common.enums.VailDateTypeEnum;
+import org.zcdada.shortlink_zc.project.dao.entity.ShortLinkAccessStatsDO;
 import org.zcdada.shortlink_zc.project.dao.entity.ShortLinkDO;
 import org.zcdada.shortlink_zc.project.dao.entity.ShortLinkGotoDO;
+import org.zcdada.shortlink_zc.project.dao.mapper.ShortLinkAccessStatsMapper;
 import org.zcdada.shortlink_zc.project.dao.mapper.ShortLinkGotoMapper;
 import org.zcdada.shortlink_zc.project.dao.mapper.ShortLinkMapper;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkCreateReqDTO;
@@ -55,6 +59,8 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
     private final RedissonClient redissonClient;
 
     private final UrlService urlService;
+
+    private final ShortLinkAccessStatsMapper shortLinkAccessStatsMapper;
 
     @Override
     public ShortLinkCreateRespDTO createShortLink(ShortLinkCreateReqDTO requestParam) {
@@ -182,6 +188,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
 
         String ori = stringRedisTemplate.opsForValue().get(String.format(RedisKeyConstant.GOTO_SHORT_LINK_KEY,fullShortLink));
         if (StrUtil.isNotBlank(ori)) {
+            shortLinkStats(fullShortLink, request, response);
             ((HttpServletResponse)response).sendRedirect(ori);
             return;
         }
@@ -203,6 +210,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
 
         ori = stringRedisTemplate.opsForValue().get(String.format(RedisKeyConstant.GOTO_SHORT_LINK_KEY,fullShortLink));
         if (StrUtil.isNotBlank(ori)) {
+            shortLinkStats(fullShortLink, request, response);
             ((HttpServletResponse)response).sendRedirect(ori);
             return;
         }
@@ -242,12 +250,29 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
                         LinkUtil.getLinkCacheValidTime(shortLinkDO.getValidDate()),
                         TimeUnit.MILLISECONDS
                 );
+            shortLinkStats(fullShortLink, request, response);
             ((HttpServletResponse)response).sendRedirect(shortLinkDO.getOriginUrl());
 
 
         }finally {
             lock.unlock();
         }
+    }
+    private void shortLinkStats(String fullShortLink,ServletRequest request, ServletResponse response){
+        Date date = new Date();
+        int hour = DateUtil.hour(date, true);
+        Week week = DateUtil.dayOfWeekEnum(date);
+
+        ShortLinkAccessStatsDO shortLinkAccessStatsDO = ShortLinkAccessStatsDO.builder()
+                .fullShortUrl(fullShortLink)
+                .uv(1)
+                .uip(1)
+                .pv(1)
+                .date(date)
+                .hour(hour)
+                .weekday(week.getIso8601Value())
+                .build();
+        shortLinkAccessStatsMapper.shortLinkStats(shortLinkAccessStatsDO);
     }
 
     private String getShortLink(ShortLinkCreateReqDTO requestParam) {
