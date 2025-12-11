@@ -3,6 +3,7 @@ package org.zcdada.shortlink_zc.project.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.date.Week;
+import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -13,6 +14,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import groovy.util.logging.Slf4j;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -44,6 +47,7 @@ import org.zcdada.shortlink_zc.project.toolkit.RandomGenerator;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -259,20 +263,58 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
         }
     }
     private void shortLinkStats(String fullShortLink,ServletRequest request, ServletResponse response){
-        Date date = new Date();
-        int hour = DateUtil.hour(date, true);
-        Week week = DateUtil.dayOfWeekEnum(date);
 
-        ShortLinkAccessStatsDO shortLinkAccessStatsDO = ShortLinkAccessStatsDO.builder()
-                .fullShortUrl(fullShortLink)
-                .uv(1)
-                .uip(1)
-                .pv(1)
-                .date(date)
-                .hour(hour)
-                .weekday(week.getIso8601Value())
-                .build();
-        shortLinkAccessStatsMapper.shortLinkStats(shortLinkAccessStatsDO);
+        //通过cookie判断当前用户是否为老用户
+        try{
+            Cookie[] cookies = ((HttpServletRequest) request).getCookies();
+            AtomicBoolean flag = new AtomicBoolean(false);
+
+            Runnable run = ()->{
+                String uv = UUID.randomUUID().toString();
+                Cookie uvCookie = new Cookie("uv", uv);
+                uvCookie.setMaxAge(60 * 60 * 24 * 30);
+                uvCookie.setPath(StrUtil.sub(fullShortLink,fullShortLink.indexOf("/"),fullShortLink.length()));
+                ((HttpServletResponse)response).addCookie(uvCookie);
+                flag.set(true);
+                stringRedisTemplate.opsForSet().add(String.format(RedisKeyConstant.USER_SHORT_LINK_KEY, fullShortLink), uv);
+            };
+
+            if (ArrayUtil.isNotEmpty(cookies)) {
+                Arrays.stream(cookies)
+                        .filter(each ->Objects.equals(each.getName(),"uv"))
+                        .findFirst()
+                        .map(Cookie::getValue)
+                        .ifPresentOrElse(uv -> {
+                            Long add = stringRedisTemplate.opsForSet().add(String.format(RedisKeyConstant.USER_SHORT_LINK_KEY, fullShortLink), uv);
+                            flag.set(add != null && add > 0L);
+                        },run);
+            }else{
+                run.run();
+            }
+
+
+
+            Date date = new Date();
+            int hour = DateUtil.hour(date, true);
+            Week week = DateUtil.dayOfWeekEnum(date);
+
+            ShortLinkAccessStatsDO shortLinkAccessStatsDO = ShortLinkAccessStatsDO.builder()
+                    .fullShortUrl(fullShortLink)
+                    .pv(1)
+                    .uv(flag.get()?1:0)
+                    .uip(1)
+                    .date(date)
+                    .hour(hour)
+                    .weekday(week.getIso8601Value())
+                    .build();
+            shortLinkAccessStatsMapper.shortLinkStats(shortLinkAccessStatsDO);
+
+
+        }catch (Exception e){
+            throw new ClientException("短链接访问统计异常");
+        }
+
+
     }
 
     private String getShortLink(ShortLinkCreateReqDTO requestParam) {
