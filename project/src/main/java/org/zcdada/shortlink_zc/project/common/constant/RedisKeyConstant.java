@@ -15,7 +15,16 @@ public class RedisKeyConstant {
      * @Description:  使用的短链接的新老用户 key
      * @DateTime: 2025/12/5 19:29
      */
-    public static final String USER_SHORT_LINK_KEY = "user_short_link_goto_%s";
+    public static final String SHORT_LINK_STATS_UV_KEY = "short-link:stats:uv:%s";
+
+
+
+    /*
+     * @Author: zcdada
+     * @Description:  使用的短链接的ip key
+     * @DateTime: 2025/12/5 19:29
+     */
+    public static final String SHORT_LINK_STATS_UIP_KEY = "short-link:stats:uip:%s";
 
 
     /*

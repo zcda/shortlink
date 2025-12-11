@@ -7,4 +7,6 @@ package org.zcdada.shortlink_zc.project.common.constant;
  */
 public class ShortLinkConstant {
     public static final Long DEFAULT_CACHE_TIME = 2628000L;
+
+    public static final String AMAP_REMOTE_URL = "https://restapi.amap.com/v3/ip";
 }
