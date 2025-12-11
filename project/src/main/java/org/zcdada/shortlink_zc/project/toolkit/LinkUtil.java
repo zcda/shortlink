@@ -132,5 +132,29 @@ public class LinkUtil {
         return "Unknown Browser";
     }
 
+    public static String getDevice(HttpServletRequest request) {
+        String userAgent = request.getHeader("User-Agent").toLowerCase(); // 转为小写方便判断
 
+        // 常见的移动端设备关键字列表[1,6](@ref)
+        if (userAgent == null) {
+            return "无法判断设备类型";
+        }
+
+        String[] mobileKeywords = {
+                "android", "iphone", "ipod", "ipad", "windows phone",
+                "nokia", "blackberry", "webos", "opera mini",
+                "mobile", "mobi", "samsung", "htc"
+        };
+
+        for (String keyword : mobileKeywords) {
+            if (userAgent.contains(keyword)) {
+                return "mobile";
+            }
+        }
+        return "pc";
+    }
+    public static String getNetwork(HttpServletRequest request) {
+
+        return "Wifi";
+    }
 }

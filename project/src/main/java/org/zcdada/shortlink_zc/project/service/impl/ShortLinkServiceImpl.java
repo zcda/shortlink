@@ -50,6 +50,7 @@ import org.zcdada.shortlink_zc.project.toolkit.RandomGenerator;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.zcdada.shortlink_zc.project.common.constant.ShortLinkConstant.AMAP_REMOTE_URL;
 
@@ -69,12 +70,12 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
     private final UrlService urlService;
 
     private final ShortLinkAccessStatsMapper shortLinkAccessStatsMapper;
-
     private final ShortLinkLocaleStatsMapper shortLinkLocaleStatsMapper;
-
     private final ShortLinkOsStatsMapper shortLinkOsStatsMapper;
-
     private final ShortLinkBrowserStatsMapper shortLinkBrowserStatsMapper;
+    private final ShortLinkDeviceStatsMapper shortLinkDeviceStatsMapper;
+    private final ShortLinkNetworkStatsMapper shortLinkNetworkStatsMapper;
+    private final ShortLinkAccessLogsMapper shortLinkAccessLogsMapper;
 
 
     @Value("${short-link.stats.locale.amap-key}")
@@ -289,6 +290,10 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
             Cookie[] cookies = ((HttpServletRequest) request).getCookies();
             AtomicBoolean uvFlag = new AtomicBoolean(false);
 
+
+            AtomicReference<String> realUv = new AtomicReference<>();
+
+
             Runnable run = ()->{
                 String uv = UUID.randomUUID().toString();
                 Cookie uvCookie = new Cookie("uv", uv);
@@ -296,6 +301,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
                 uvCookie.setPath(StrUtil.sub(fullShortLink,fullShortLink.indexOf("/"),fullShortLink.length()));
                 ((HttpServletResponse)response).addCookie(uvCookie);
                 uvFlag.set(true);
+                realUv.set(uv);
                 stringRedisTemplate.opsForSet().add(String.format(RedisKeyConstant.SHORT_LINK_STATS_UV_KEY, fullShortLink), uv);
             };
 
@@ -305,6 +311,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
                         .findFirst()
                         .map(Cookie::getValue)
                         .ifPresentOrElse(uv -> {
+                            realUv.set(uv);
                             Long uvAdd = stringRedisTemplate.opsForSet().add(String.format(RedisKeyConstant.SHORT_LINK_STATS_UV_KEY, fullShortLink), uv);
                             uvFlag.set(uvAdd != null && uvAdd > 0L);
                         },run);
@@ -375,6 +382,37 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
                     .date(date)
                     .build();
             shortLinkBrowserStatsMapper.shortLinkBrowserStats(shortLinkBrowserStatsDO);
+
+            String device = LinkUtil.getDevice((HttpServletRequest) request);
+            ShortLinkDeviceStatsDO shortLinkDeviceStatsDO = ShortLinkDeviceStatsDO.builder()
+                    .fullShortUrl(fullShortLink)
+                    .cnt(1)
+                    .device(device)
+                    .date(date)
+                    .build();
+            shortLinkDeviceStatsMapper.shortLinkDeviceStats(shortLinkDeviceStatsDO);
+
+            String network = LinkUtil.getNetwork((HttpServletRequest) request);
+            ShortLinkNetworkStatsDO shortLinkNetworkStatsDO = ShortLinkNetworkStatsDO.builder()
+                    .fullShortUrl(fullShortLink)
+                    .cnt(1)
+                    .network(network)
+                    .date(date)
+                    .build();
+            shortLinkNetworkStatsMapper.shortLinkNetworkStats(shortLinkNetworkStatsDO);
+
+
+            ShortLinkAccessLogsDO shortLinkAccessLogsDO = ShortLinkAccessLogsDO.builder()
+                    .fullShortUrl(fullShortLink)
+                    .ip(remoteAddr)
+                    .user(realUv.get())
+                    .locale(localeJsonObject.getString("province"))
+                    .browser(browser)
+                    .device(device)
+                    .os(operatingSystem)
+                    .network(network)
+                    .build();
+            shortLinkAccessLogsMapper.insert(shortLinkAccessLogsDO);
 
         }catch (Exception e){
             throw new ClientException("短链接访问统计异常");
