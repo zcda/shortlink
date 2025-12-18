@@ -3,7 +3,11 @@ package org.zcdada.shortlink_zc.project.dao.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.zcdada.shortlink_zc.project.dao.entity.ShortLinkDeviceStatsDO;
+import org.zcdada.shortlink_zc.project.dto.req.ShortLinkStatsReqDTO;
+
+import java.util.List;
 
 /**
  * @Author: zcdada
@@ -36,4 +40,21 @@ public interface ShortLinkDeviceStatsMapper extends BaseMapper<ShortLinkDeviceSt
       cnt = cnt + #{LinkDeviceStats.cnt};
 """)
     void shortLinkDeviceStats(@Param("LinkDeviceStats")ShortLinkDeviceStatsDO shortLinkDeviceStatsDO);
+
+    /**
+     * 根据短链接获取指定日期内访问设备监控数据
+     */
+    @Select("SELECT " +
+            "    device, " +
+            "    SUM(cnt) AS cnt " +
+            "FROM " +
+            "    t_link_device_stats " +
+            "WHERE " +
+            "    full_short_url = #{param.fullShortUrl} " +
+            "    AND date BETWEEN #{param.startDate} and #{param.endDate} " +
+            "GROUP BY " +
+            "    full_short_url, device;")
+    List<ShortLinkDeviceStatsDO> listDeviceStatsByShortLink(@Param("param") ShortLinkStatsReqDTO requestParam);
+
+
 }

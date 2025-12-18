@@ -3,7 +3,12 @@ package org.zcdada.shortlink_zc.project.dao.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.zcdada.shortlink_zc.project.dao.entity.ShortLinkBrowserStatsDO;
+import org.zcdada.shortlink_zc.project.dto.req.ShortLinkStatsReqDTO;
+
+import java.util.HashMap;
+import java.util.List;
 
 /**
  * @Author: zcdada
@@ -36,4 +41,22 @@ public interface ShortLinkBrowserStatsMapper extends BaseMapper<ShortLinkBrowser
       cnt = cnt + #{LinkBrowserStats.cnt};
 """)
     void shortLinkBrowserStats(@Param("LinkBrowserStats")ShortLinkBrowserStatsDO shortLinkBrowserStatsDO);
+
+
+    /**
+     * 根据短链接获取指定日期内浏览器监控数据
+     */
+    @Select("SELECT " +
+            "    browser, " +
+            "    SUM(cnt) AS count " +
+            "FROM " +
+            "    t_link_browser_stats " +
+            "WHERE " +
+            "    full_short_url = #{param.fullShortUrl} " +
+            "    AND date BETWEEN #{param.startDate} and #{param.endDate} " +
+            "GROUP BY " +
+            "    full_short_url, date, browser;")
+    List<HashMap<String, Object>> listBrowserStatsByShortLink(@Param("param") ShortLinkStatsReqDTO requestParam);
+
+
 }
