@@ -14,4 +14,9 @@ import org.zcdada.shortlink_zc.project.dao.entity.ShortLinkDO;
 public class ShortLinkPageReqDTO extends Page<ShortLinkDO> {
 
     private String gid;
+
+    /**
+     * 排序标识
+     */
+    private String orderTag;
 }
