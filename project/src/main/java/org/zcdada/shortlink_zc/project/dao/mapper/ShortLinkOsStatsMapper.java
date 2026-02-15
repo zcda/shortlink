@@ -54,7 +54,7 @@ public interface ShortLinkOsStatsMapper extends BaseMapper<ShortLinkOsStatsDO> {
             "    full_short_url = #{param.fullShortUrl} " +
             "    AND date BETWEEN #{param.startDate} and #{param.endDate} " +
             "GROUP BY " +
-            "    full_short_url, date, os;")
+            "    full_short_url, os;")
     List<HashMap<String, Object>> listOsStatsByShortLink(@Param("param") ShortLinkStatsReqDTO requestParam);
 
 

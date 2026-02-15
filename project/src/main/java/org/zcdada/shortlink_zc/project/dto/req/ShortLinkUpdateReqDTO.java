@@ -12,7 +12,7 @@ import java.util.Date;
 @Data
 public class ShortLinkUpdateReqDTO {
 
-    //完整短链接
+    //完整短链接 没有前缀
     private String fullShortUrl;
 
     //原始链接

@@ -103,14 +103,15 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper,GroupDO> implement
 
     @Override
     public void deleteGroup(String gid) {
-        LambdaUpdateWrapper<GroupDO> updateWrapper = Wrappers.lambdaUpdate(GroupDO.class)
+
+        // 如果启用了逻辑删除，应该这样操作
+        LambdaQueryWrapper<GroupDO> queryWrapper = Wrappers.lambdaQuery(GroupDO.class)
                 .eq(GroupDO::getGid, gid)
                 .eq(GroupDO::getUsername, UserContext.getUsername())
                 .eq(GroupDO::getDelFlag, 0);
 
-        GroupDO groupDO = new GroupDO();
-        groupDO.setDelFlag(1);
-        baseMapper.update(groupDO, updateWrapper);
+        // 使用逻辑删除
+        int deleteCount = baseMapper.delete(queryWrapper);
     }
 
     @Override

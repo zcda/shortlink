@@ -82,7 +82,7 @@ public class ShortLinkStatsServiceImpl implements ShortLinkStatsService {
         // 一周访问详情 看周几访问的多
         List<Integer> weekdayStats = new ArrayList<>();
         List<ShortLinkAccessStatsDO> listWeekdayStatsByShortLink = linkAccessStatsMapper.listWeekdayStatsByShortLink(requestParam);
-        for (int i = 0; i < 8; i++) {
+        for (int i = 1; i < 8; i++) {
             AtomicInteger weekday = new AtomicInteger(i);
             int weekdayCnt = listWeekdayStatsByShortLink.stream()
                     .filter(each -> Objects.equals(each.getHour(), weekday.get()))

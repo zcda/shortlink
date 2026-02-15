@@ -140,6 +140,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
                 .eq(ShortLinkDO::getDelFlag, 0)
                 .eq(ShortLinkDO::getEnableStatus, 0)
                 .set(Objects.equals(requestParam.getValidDateType(), VailDateTypeEnum.PERMANENT.getValue()), ShortLinkDO::getValidDate, null);
+
         ShortLinkDO linkDO = ShortLinkDO.builder()
                 .domain(check.getDomain())
                 .shortUri(check.getShortUri())
@@ -156,10 +157,14 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
         if (check.getGid().equals(requestParam.getGid())) {
             baseMapper.update(linkDO, updateWrapper);
         }else{
-            check.setDelFlag(1);
-            check.setGid(null);
-            baseMapper.update(check,queryWrapper);
+            baseMapper.delete(queryWrapper);
             linkDO.setGid(requestParam.getGid());
+
+            ShortLinkGotoDO shortLinkGotoDO = ShortLinkGotoDO.builder().
+                    gid(requestParam.getGid()).
+                    fullShortUrl(requestParam.getFullShortUrl()).
+                    build();
+            shortLinkGotoMapper.insert(shortLinkGotoDO);
             baseMapper.insert(linkDO);
         }
     }

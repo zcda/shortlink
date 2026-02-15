@@ -8,7 +8,6 @@ import org.zcdada.shortlink_zc.project.dao.entity.ShortLinkAccessStatsDO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkStatsReqDTO;
 
 import java.util.List;
-
 public interface ShortLinkAccessStatsMapper extends BaseMapper<ShortLinkAccessStatsDO> {
 
     @Insert("INSERT INTO t_link_access_stats (full_short_url,date,pv,uv,uip,hour,weekday,create_time,update_time,del_flag)" +

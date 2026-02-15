@@ -52,6 +52,7 @@ public class ShortLinkController {
     /**
      * @Author: zcdada
      * @Description: 修改 短链接
+     * 只能修改    gid;validDateType;validDate;describe;
      * @DateTime: 2025/11/26 16:15
      */
     @PostMapping("/api/short-link/v1/update")
