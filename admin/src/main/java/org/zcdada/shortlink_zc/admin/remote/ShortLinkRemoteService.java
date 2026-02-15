@@ -9,10 +9,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.zcdada.shortlink_zc.admin.common.convention.result.Result;
 import org.zcdada.shortlink_zc.admin.remote.dto.req.*;
-import org.zcdada.shortlink_zc.admin.remote.dto.resp.ShortLinkCreateRespDTO;
-import org.zcdada.shortlink_zc.admin.remote.dto.resp.ShortLinkGroupRemoteRespDTO;
-import org.zcdada.shortlink_zc.admin.remote.dto.resp.ShortLinkPageRespDTO;
-import org.zcdada.shortlink_zc.admin.remote.dto.resp.ShortLinkStatsRespDTO;
+import org.zcdada.shortlink_zc.admin.remote.dto.resp.*;
 
 import java.util.HashMap;
 import java.util.List;
@@ -101,4 +98,19 @@ public interface ShortLinkRemoteService {
         });
     }
 
+
+    /**
+     * 访问单个短链接指定时间内监控访问记录数据
+     *
+     * @param requestParam 访问短链接监控访问记录请求参数
+     * @return 短链接监控访问记录信息
+     */
+    default Result<IPage<ShortLinkStatsAccessRecordRespDTO>> shortLinkStatsAccessRecord(ShortLinkStatsAccessRecordReqDTO requestParam) {
+        Map<String, Object> stringObjectMap = BeanUtil.beanToMap(requestParam, false, true);
+        stringObjectMap.remove("orders");
+        stringObjectMap.remove("records");
+        String resultBodyStr = HttpUtil.get("http://127.0.0.1:8001/api/short-link/v1/stats/access-record", stringObjectMap);
+        return JSON.parseObject(resultBodyStr, new TypeReference<>() {
+        });
+    }
 }

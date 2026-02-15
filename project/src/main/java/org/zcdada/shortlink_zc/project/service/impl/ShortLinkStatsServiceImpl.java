@@ -1,21 +1,19 @@
 package org.zcdada.shortlink_zc.project.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.zcdada.shortlink_zc.project.dao.entity.ShortLinkAccessStatsDO;
-import org.zcdada.shortlink_zc.project.dao.entity.ShortLinkDeviceStatsDO;
-import org.zcdada.shortlink_zc.project.dao.entity.ShortLinkLocaleStatsDO;
-import org.zcdada.shortlink_zc.project.dao.entity.ShortLinkNetworkStatsDO;
+import org.zcdada.shortlink_zc.project.dao.entity.*;
 import org.zcdada.shortlink_zc.project.dao.mapper.*;
+import org.zcdada.shortlink_zc.project.dto.req.ShortLinkStatsAccessRecordReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkStatsReqDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.*;
 import org.zcdada.shortlink_zc.project.service.ShortLinkStatsService;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -190,5 +188,38 @@ public class ShortLinkStatsServiceImpl implements ShortLinkStatsService {
                 .deviceStats(deviceStats)
                 .networkStats(networkStats)
                 .build();
+    }
+
+    @Override
+    public IPage<ShortLinkStatsAccessRecordRespDTO> shortLinkStatsAccessRecord(ShortLinkStatsAccessRecordReqDTO requestParam) {
+        //时间范围内的用户的访问记录 todo 是否需要修改 因为查询不到endDate当天的访问记录
+        LambdaQueryWrapper<ShortLinkAccessLogsDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkAccessLogsDO.class)
+                .eq(ShortLinkAccessLogsDO::getFullShortUrl, requestParam.getFullShortUrl())
+                .between(ShortLinkAccessLogsDO::getCreateTime, requestParam.getStartDate(), requestParam.getEndDate())
+                .eq(ShortLinkAccessLogsDO::getDelFlag, 0)
+                .orderByDesc(ShortLinkAccessLogsDO::getCreateTime);
+        IPage<ShortLinkAccessLogsDO> linkAccessLogsDOIPage = linkAccessLogsMapper.selectPage(requestParam, queryWrapper);
+
+        IPage<ShortLinkStatsAccessRecordRespDTO> actualResult = linkAccessLogsDOIPage.convert(each -> BeanUtil.toBean(each, ShortLinkStatsAccessRecordRespDTO.class));
+        // 主要是判断新老用户
+        List<String> userAccessLogsList = actualResult.getRecords().stream()
+                .map(ShortLinkStatsAccessRecordRespDTO::getUser)
+                .toList();
+        List<Map<String, Object>> uvTypeList = linkAccessLogsMapper.selectUvTypeByUsers(
+                requestParam.getFullShortUrl(),
+                requestParam.getStartDate(),
+                requestParam.getEndDate(),
+                userAccessLogsList
+        );
+        actualResult.getRecords().forEach(each -> {
+            String uvType = uvTypeList.stream()
+                    .filter(item -> Objects.equals(each.getUser(), item.get("user")))
+                    .findFirst()
+                    .map(item -> item.get("uvType"))
+                    .map(Object::toString)
+                    .orElse("旧访客");
+            each.setUvType(uvType);
+        });
+        return actualResult;
     }
 }
