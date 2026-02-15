@@ -27,6 +27,7 @@ public interface ShortLinkRemoteService {
         requestMap.put("gid", requestParam.getGid());
         requestMap.put("current", requestParam.getCurrent());
         requestMap.put("size", requestParam.getSize());
+        requestMap.put("orderTag", requestParam.getOrderTag());
 //        String jsonString = JSON.toJSONString(requestParam);
         String resultPageStr = HttpUtil.get("http://127.0.0.1:8001/api/short-link/v1/page",requestMap);
 
@@ -75,6 +76,7 @@ public interface ShortLinkRemoteService {
         Map<String,Object> requestMap = new HashMap<>();
         requestMap.put("gidList", requestParam.getGidList());
         requestMap.put("current", requestParam.getCurrent());
+
         requestMap.put("size", requestParam.getSize());
         String resultPageStr = HttpUtil.get("http://127.0.0.1:8001/api/short-link/v1/recycle-bin/page",requestMap);
         return JSON.parseObject(resultPageStr, new TypeReference<>() {

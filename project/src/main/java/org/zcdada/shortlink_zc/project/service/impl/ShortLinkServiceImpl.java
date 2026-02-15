@@ -76,6 +76,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
     private final ShortLinkDeviceStatsMapper shortLinkDeviceStatsMapper;
     private final ShortLinkNetworkStatsMapper shortLinkNetworkStatsMapper;
     private final ShortLinkAccessLogsMapper shortLinkAccessLogsMapper;
+    private final ShortLinkStatsTodayMapper shortLinkStatsTodayMapper;
 
 
     @Value("${short-link.stats.locale.amap-key}")
@@ -174,13 +175,8 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
 
     @Override
     public IPage<ShortLinkPageRespDTO> pageShortLink(ShortLinkPageReqDTO requestParam) {
-        LambdaQueryWrapper<ShortLinkDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkDO.class)
-                .eq(ShortLinkDO::getGid, requestParam.getGid())
-                .eq(ShortLinkDO::getEnableStatus, 0)
-                .eq(ShortLinkDO::getDelFlag, 0)
-                .orderByDesc(ShortLinkDO::getCreateTime);
+        IPage<ShortLinkDO> resultPage = baseMapper.pageLink(requestParam);
 
-        IPage<ShortLinkDO> resultPage = baseMapper.selectPage(requestParam, queryWrapper);
 
         return resultPage.convert(each -> {
             each.setDomain("http://" + each.getDomain());
@@ -421,6 +417,17 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
                     .network(network)
                     .build();
             shortLinkAccessLogsMapper.insert(shortLinkAccessLogsDO);
+
+            baseMapper.incrementStats(fullShortLink, 1, uvFlag.get()?1:0, uipFlag?1:0);
+
+            ShortLinkStatsTodayDO linkStatsTodayDO = ShortLinkStatsTodayDO.builder()
+                    .todayPv(1)
+                    .todayUv(uvFlag.get()?1:0)
+                    .todayUip(uipFlag?1:0)
+                    .fullShortUrl(fullShortLink)
+                    .date(new Date())
+                    .build();
+            shortLinkStatsTodayMapper.shortLinkTodayState(linkStatsTodayDO);
 
         }catch (Exception e){
             throw new ClientException("短链接访问统计异常");
