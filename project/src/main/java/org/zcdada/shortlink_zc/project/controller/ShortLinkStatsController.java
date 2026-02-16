@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.zcdada.shortlink_zc.project.common.convention.result.Result;
 import org.zcdada.shortlink_zc.project.common.convention.result.Results;
+import org.zcdada.shortlink_zc.project.dto.req.ShortLinkGroupStatsAccessRecordReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkGroupStatsReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkStatsAccessRecordReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkStatsReqDTO;
@@ -31,6 +32,14 @@ public class ShortLinkStatsController {
         return Results.success(shortLinkStatsService.oneShortLinkStats(requestParam));
     }
 
+
+    /**
+     * 访问分组短链接指定时间内监控数据
+     */
+    @GetMapping("/api/short-link/v1/stats/group")
+    public Result<ShortLinkStatsRespDTO> groupShortLinkStats(ShortLinkGroupStatsReqDTO requestParam) {
+        return Results.success(shortLinkStatsService.groupShortLinkStats(requestParam));
+    }
     /**
      * 访问单个短链接指定时间内访问记录监控数据
      */
@@ -41,12 +50,14 @@ public class ShortLinkStatsController {
 
 
     /**
-     * 访问分组短链接指定时间内监控数据
+     * 访问分组短链接指定时间内访问记录监控数据
      */
-    @GetMapping("/api/short-link/v1/stats/group")
-    public Result<ShortLinkStatsRespDTO> groupShortLinkStats(ShortLinkGroupStatsReqDTO requestParam) {
-        return Results.success(shortLinkStatsService.groupShortLinkStats(requestParam));
+    @GetMapping("/api/short-link/v1/stats/access-record/group")
+    public Result<IPage<ShortLinkStatsAccessRecordRespDTO>> groupShortLinkStatsAccessRecord(ShortLinkGroupStatsAccessRecordReqDTO requestParam) {
+        return Results.success(shortLinkStatsService.groupShortLinkStatsAccessRecord(requestParam));
     }
+
+
 
 
 }

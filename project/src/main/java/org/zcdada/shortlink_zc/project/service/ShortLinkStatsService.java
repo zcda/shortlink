@@ -3,6 +3,7 @@ package org.zcdada.shortlink_zc.project.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import org.zcdada.shortlink_zc.project.common.convention.result.Result;
+import org.zcdada.shortlink_zc.project.dto.req.ShortLinkGroupStatsAccessRecordReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkGroupStatsReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkStatsAccessRecordReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkStatsReqDTO;
@@ -39,4 +40,6 @@ public interface ShortLinkStatsService {
      * @return 分组短链接监控数据
      */
     ShortLinkStatsRespDTO groupShortLinkStats(ShortLinkGroupStatsReqDTO requestParam);
+
+    IPage<ShortLinkStatsAccessRecordRespDTO> groupShortLinkStatsAccessRecord(ShortLinkGroupStatsAccessRecordReqDTO requestParam);
 }
