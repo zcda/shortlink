@@ -14,6 +14,9 @@ import java.util.Date;
  *
  * @author makejava
  * @since 2025-12-11 10:29:22
+ *
+ * 记录短链接 每一天每一个时间段的pv uv uip
+ *
  */
 @TableName("t_link_access_stats")
 @Data
