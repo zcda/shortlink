@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.zcdada.shortlink_zc.project.dao.entity.ShortLinkLocaleStatsDO;
+import org.zcdada.shortlink_zc.project.dto.req.ShortLinkGroupStatsReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkStatsReqDTO;
 
 import java.util.List;
@@ -64,5 +65,20 @@ public interface ShortLinkLocaleStatsMapper extends BaseMapper<ShortLinkLocaleSt
             "    full_short_url, province;")
     List<ShortLinkLocaleStatsDO> listLocaleByShortLink(@Param("param") ShortLinkStatsReqDTO requestParam);
 
+
+    /**
+     * 根据分组获取指定日期内地区监控数据
+     */
+    @Select("SELECT " +
+            "    province, " +
+            "    SUM(cnt) AS cnt " +
+            "FROM " +
+            "  t_link_locale_stats s left join t_link t on t.full_short_url = s.full_short_url" +
+            " WHERE " +
+            "    t.gid = #{param.gid} " +
+            "    AND s.date BETWEEN #{param.startDate} and #{param.endDate} " +
+            "GROUP BY " +
+            "    gid, province;")
+    List<ShortLinkLocaleStatsDO> listLocaleByGroup(@Param("param") ShortLinkGroupStatsReqDTO requestParam);
 
 }
