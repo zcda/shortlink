@@ -8,9 +8,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.zcdada.shortlink_zc.project.common.convention.result.Result;
 import org.zcdada.shortlink_zc.project.common.convention.result.Results;
+import org.zcdada.shortlink_zc.project.dto.req.ShortLinkBatchCreateReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkCreateReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkPageReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkUpdateReqDTO;
+import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkBatchCreateRespDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkCreateRespDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkGroupRespDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkPageRespDTO;
@@ -48,6 +50,15 @@ public class ShortLinkController {
     public Result<ShortLinkCreateRespDTO> createShortLink(@RequestBody ShortLinkCreateReqDTO requestParam){
         return Results.success(shortLinkService.createShortLink(requestParam));
     }
+
+    /**
+     * 批量创建短链接
+     */
+    @PostMapping("/api/short-link/v1/create/batch")
+    public Result<ShortLinkBatchCreateRespDTO> batchCreateShortLink(@RequestBody ShortLinkBatchCreateReqDTO requestParam) {
+        return Results.success(shortLinkService.batchCreateShortLink(requestParam));
+    }
+
 
     /**
      * @Author: zcdada

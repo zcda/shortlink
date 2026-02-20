@@ -9,9 +9,9 @@ import lombok.NoArgsConstructor;
 import java.util.Date;
 
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class ShortLinkCreateReqDTO {
 
     //域名

@@ -5,9 +5,11 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import org.zcdada.shortlink_zc.project.dao.entity.ShortLinkDO;
+import org.zcdada.shortlink_zc.project.dto.req.ShortLinkBatchCreateReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkCreateReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkPageReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkUpdateReqDTO;
+import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkBatchCreateRespDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkCreateRespDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkGroupRespDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkPageRespDTO;
@@ -51,4 +53,6 @@ public interface ShortLinkService extends IService<ShortLinkDO> {
      * @DateTime: 2025/12/5 19:40
      */
     void restoreUrl(String shortUri, ServletRequest request, ServletResponse response);
+
+    ShortLinkBatchCreateRespDTO batchCreateShortLink(ShortLinkBatchCreateReqDTO requestParam);
 }

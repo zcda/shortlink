@@ -14,7 +14,6 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import groovy.util.logging.Slf4j;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.Cookie;
@@ -23,6 +22,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jodd.util.StringUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBloomFilter;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
@@ -35,12 +35,11 @@ import org.zcdada.shortlink_zc.project.common.convention.exception.ServiceExcept
 import org.zcdada.shortlink_zc.project.common.enums.VailDateTypeEnum;
 import org.zcdada.shortlink_zc.project.dao.entity.*;
 import org.zcdada.shortlink_zc.project.dao.mapper.*;
+import org.zcdada.shortlink_zc.project.dto.req.ShortLinkBatchCreateReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkCreateReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkPageReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkUpdateReqDTO;
-import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkCreateRespDTO;
-import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkGroupRespDTO;
-import org.zcdada.shortlink_zc.project.dto.resp.ShortLinkPageRespDTO;
+import org.zcdada.shortlink_zc.project.dto.resp.*;
 import org.zcdada.shortlink_zc.project.service.ShortLinkService;
 import org.zcdada.shortlink_zc.project.service.UrlService;
 import org.zcdada.shortlink_zc.project.toolkit.IpUtils;
@@ -291,6 +290,33 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
         }finally {
             lock.unlock();
         }
+    }
+
+    @Override
+    public ShortLinkBatchCreateRespDTO batchCreateShortLink(ShortLinkBatchCreateReqDTO requestParam) {
+        List<String> originUrls = requestParam.getOriginUrls();
+        List<String> describes = requestParam.getDescribes();
+        List<ShortLinkBaseInfoRespDTO> result = new ArrayList<>();
+        for (int i = 0; i < originUrls.size(); i++) {
+            ShortLinkCreateReqDTO shortLinkCreateReqDTO = BeanUtil.toBean(requestParam, ShortLinkCreateReqDTO.class);
+            shortLinkCreateReqDTO.setOriginUrl(originUrls.get(i));
+            shortLinkCreateReqDTO.setDescribe(describes.get(i));
+            try {
+                ShortLinkCreateRespDTO shortLink = createShortLink(shortLinkCreateReqDTO);
+                ShortLinkBaseInfoRespDTO linkBaseInfoRespDTO = ShortLinkBaseInfoRespDTO.builder()
+                        .fullShortUrl(shortLink.getFullShortUrl())
+                        .originUrl(shortLink.getOriginUrl())
+                        .describe(describes.get(i))
+                        .build();
+                result.add(linkBaseInfoRespDTO);
+            } catch (Throwable ex) {
+                log.error("批量创建短链接失败，原始参数：{}", originUrls.get(i));
+            }
+        }
+        return ShortLinkBatchCreateRespDTO.builder()
+                .total(result.size())
+                .baseLinkInfos(result)
+                .build();
     }
 
     /**
