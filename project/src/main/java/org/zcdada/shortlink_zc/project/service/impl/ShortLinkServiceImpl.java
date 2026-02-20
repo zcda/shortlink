@@ -82,17 +82,21 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
     @Value("${short-link.stats.locale.amap-key}")
     private String amapKey;
 
+
+    @Value("${short-link.domain.default}")
+    private String createShortLinkDefaultDomain;
+
     @Override
     public ShortLinkCreateRespDTO createShortLink(ShortLinkCreateReqDTO requestParam) {
         // todo 检查是否为当前用户的gid且存在
         String shortLinkUri = getShortLink(requestParam);
-        String fullShortUrl=requestParam.getDomain() + "/" + shortLinkUri;
+        String fullShortUrl=createShortLinkDefaultDomain + "/" + shortLinkUri;
         ShortLinkDO shortLinkDO = new ShortLinkDO().builder()
                 .gid(requestParam.getGid())
                 .validDate(requestParam.getValidDate())
                 .describe(requestParam.getDescribe())
                 .createdType(requestParam.getCreatedType())
-                .domain(requestParam.getDomain())
+                .domain(createShortLinkDefaultDomain)
                 .enableStatus(0)
                 .originUrl(requestParam.getOriginUrl())
                 .validDateType(requestParam.getValidDateType())
@@ -207,11 +211,18 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
     @Override
     public void restoreUrl(String shortUri, ServletRequest request, ServletResponse response) {
         String serverName = request.getServerName();
-        String fullShortLink = serverName+"/" + shortUri;
+
+        String serverPort = Optional.of(request.getServerPort())
+                .filter(each -> !Objects.equals(each, 80))
+                .map(String::valueOf)
+                .map(each -> ":" + each)
+                .orElse("");
+
+        String fullShortLink = serverName+serverPort+"/" + shortUri;
 
         String ori = stringRedisTemplate.opsForValue().get(String.format(RedisKeyConstant.GOTO_SHORT_LINK_KEY,fullShortLink));
         if (StrUtil.isNotBlank(ori)) {
-            shortLinkStats(fullShortLink, request, response);
+            shortLinkStats(null,fullShortLink, request, response);
             ((HttpServletResponse)response).sendRedirect(ori);
             return;
         }
@@ -233,7 +244,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
 
         ori = stringRedisTemplate.opsForValue().get(String.format(RedisKeyConstant.GOTO_SHORT_LINK_KEY,fullShortLink));
         if (StrUtil.isNotBlank(ori)) {
-            shortLinkStats(fullShortLink, request, response);
+            shortLinkStats(null,fullShortLink, request, response);
             ((HttpServletResponse)response).sendRedirect(ori);
             return;
         }
@@ -273,7 +284,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
                         LinkUtil.getLinkCacheValidTime(shortLinkDO.getValidDate()),
                         TimeUnit.MILLISECONDS
                 );
-            shortLinkStats(fullShortLink, request, response);
+            shortLinkStats(shortLinkDO.getGid(), fullShortLink, request, response);
             ((HttpServletResponse)response).sendRedirect(shortLinkDO.getOriginUrl());
 
 
@@ -287,10 +298,18 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
      * @Description: 用于监控短链接跳转的信息
      * @DateTime: 2025/12/11 17:09
      */
-    private void shortLinkStats(String fullShortLink,ServletRequest request, ServletResponse response){
+    private void shortLinkStats(String gid,String fullShortLink,ServletRequest request, ServletResponse response){
 
         //通过cookie判断当前用户是否为老用户
         try{
+
+            if (StrUtil.isBlank(gid)) {
+                LambdaQueryWrapper<ShortLinkGotoDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkGotoDO.class)
+                        .eq(ShortLinkGotoDO::getFullShortUrl, fullShortLink);
+                ShortLinkGotoDO shortLinkGotoDO = shortLinkGotoMapper.selectOne(queryWrapper);
+                gid = shortLinkGotoDO.getGid();
+            }
+
             Cookie[] cookies = ((HttpServletRequest) request).getCookies();
             AtomicBoolean uvFlag = new AtomicBoolean(false);
 
@@ -418,7 +437,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
                     .build();
             shortLinkAccessLogsMapper.insert(shortLinkAccessLogsDO);
 
-            baseMapper.incrementStats(fullShortLink, 1, uvFlag.get()?1:0, uipFlag?1:0);
+            baseMapper.incrementStats(gid,fullShortLink, 1, uvFlag.get()?1:0, uipFlag?1:0);
 
             ShortLinkStatsTodayDO linkStatsTodayDO = ShortLinkStatsTodayDO.builder()
                     .todayPv(1)
