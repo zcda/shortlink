@@ -2,16 +2,22 @@ package org.zcdada.shortlink_zc.admin.service.impl;
 
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import groovy.util.logging.Slf4j;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.zcdada.shortlink_zc.admin.common.biz.user.UserContext;
+import org.zcdada.shortlink_zc.admin.common.convention.exception.ClientException;
 import org.zcdada.shortlink_zc.admin.dao.entity.GroupDO;
 import org.zcdada.shortlink_zc.admin.dao.mapper.GroupMapper;
 import org.zcdada.shortlink_zc.admin.dto.req.ShortLinkGroupOrderReqDTO;
@@ -27,16 +33,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static org.zcdada.shortlink_zc.admin.common.constant.RedisCacheConstant.LOCK_GROUP_CREATE_KEY;
+
 /**
  * @Author: zcdada
  * @Description: 短链接分组实现层
  * @DateTime: 2025/11/26 10:25
  */
-@Service
 @Slf4j
-@AllArgsConstructor
-@NoArgsConstructor
+@Service
+@RequiredArgsConstructor
 public class GroupServiceImpl extends ServiceImpl<GroupMapper,GroupDO> implements GroupService {
+
+    private final RedissonClient redissonClient;
+
+    @Value("${short-link.group.max-num}")
+    private Integer groupMaxNum;
+
 
     ShortLinkRemoteService shortLinkRemoteService = new ShortLinkRemoteService() {
     };
@@ -47,6 +60,18 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper,GroupDO> implement
     }
 
     public void saveGroup(String username,ShortLinkGroupSaveReqDTO requestParam) {
+
+        RLock lock = redissonClient.getLock(String.format(LOCK_GROUP_CREATE_KEY, username));
+        lock.lock();
+        try {
+            LambdaQueryWrapper<GroupDO> queryWrapper = Wrappers.lambdaQuery(GroupDO.class)
+                    .eq(GroupDO::getUsername, username)
+                    .eq(GroupDO::getDelFlag, 0);
+            List<GroupDO> groupDOList = baseMapper.selectList(queryWrapper);
+            if (CollUtil.isNotEmpty(groupDOList) && groupDOList.size() == groupMaxNum) {
+                throw new ClientException(String.format("已超出最大分组数：%d", groupMaxNum));
+            }
+
         String gid;
         //判断gid是否可用
         while (true) {
@@ -65,6 +90,9 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper,GroupDO> implement
                 .sortOrder(0)
                 .build();
         baseMapper.insert(groupDO);
+        }finally {
+            lock.unlock();
+        }
     }
     @Override
     public List<ShortLinkGroupRespDTO> groupList() {
@@ -104,14 +132,13 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper,GroupDO> implement
     @Override
     public void deleteGroup(String gid) {
 
-        // 如果启用了逻辑删除，应该这样操作
-        LambdaQueryWrapper<GroupDO> queryWrapper = Wrappers.lambdaQuery(GroupDO.class)
-                .eq(GroupDO::getGid, gid)
+        LambdaUpdateWrapper<GroupDO> updateWrapper = Wrappers.lambdaUpdate(GroupDO.class)
                 .eq(GroupDO::getUsername, UserContext.getUsername())
+                .eq(GroupDO::getGid, gid)
                 .eq(GroupDO::getDelFlag, 0);
-
-        // 使用逻辑删除
-        int deleteCount = baseMapper.delete(queryWrapper);
+        GroupDO groupDO = new GroupDO();
+        groupDO.setDelFlag(1);
+        baseMapper.update(groupDO, updateWrapper);
     }
 
     @Override
