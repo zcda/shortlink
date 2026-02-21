@@ -1,6 +1,7 @@
 package org.zcdada.shortlink_zc.admin.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -26,6 +27,7 @@ import org.zcdada.shortlink_zc.admin.dto.resp.UserRespDTO;
 import org.zcdada.shortlink_zc.admin.service.GroupService;
 import org.zcdada.shortlink_zc.admin.service.UserService;
 
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -119,15 +121,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
         if (userDO == null) {
             throw new ClientException(USER_NULL);
         }
-        //预防重复登录
-        if (stringRedisTemplate.hasKey("login_"+requestParam.getUsername())) {
-            throw new ClientException("用户已经登录");
+        //如果用户已经登录则 返回用户token
+        Map<Object ,Object> hasLoginMap = stringRedisTemplate.opsForHash().entries("login_" + requestParam.getUsername());
+        if (CollUtil.isNotEmpty(hasLoginMap)) {
+            String token = hasLoginMap.keySet().stream()
+                    .findFirst()
+                    .map(Object::toString)
+                    .orElseThrow(() -> new ClientException("用户登录错误"));
+            return new UserLoginRespDTO(token);
         }
 
         //设置token
         String uuid = UUID.randomUUID().toString();
         stringRedisTemplate.opsForHash().put("login_"+requestParam.getUsername(), uuid, JSON.toJSONString(userDO));
-        stringRedisTemplate.expire("login_"+requestParam.getUsername(),30, TimeUnit.DAYS);
+        stringRedisTemplate.expire("login_"+requestParam.getUsername(),30, TimeUnit.MINUTES);
 
         return new UserLoginRespDTO(uuid);
     }
