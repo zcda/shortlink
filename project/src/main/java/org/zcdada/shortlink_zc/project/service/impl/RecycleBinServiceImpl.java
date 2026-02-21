@@ -63,7 +63,7 @@ public class RecycleBinServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLi
     @Override
     public void recoverRecycleBin(RecycleBinRecoverReqDTO requestParam) {
 
-        //移动到回收站
+        //从回收站恢复
         LambdaUpdateWrapper<ShortLinkDO> updateWrapper = Wrappers.lambdaUpdate(ShortLinkDO.class)
                 .eq(ShortLinkDO::getGid, requestParam.getGid())
                 .eq(ShortLinkDO::getDelFlag, 0)
@@ -89,8 +89,15 @@ public class RecycleBinServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLi
                 .eq(ShortLinkDO::getGid, requestParam.getGid())
                 .eq(ShortLinkDO::getDelFlag, 0)
                 .eq(ShortLinkDO::getEnableStatus, 1)
+                .eq(ShortLinkDO::getDelTime, 0L)
                 .eq(ShortLinkDO::getFullShortUrl, requestParam.getFullShortUrl());
-
-        baseMapper.delete(updateWrapper);
+        //配置了mybatis-plus 为逻辑删除
+        //短链接+deltime 为唯一索引 作用? 一条短链接可以重复删除 然后呢? recover的时候deltime没有修改啊 deltime的意义是?
+        //如果使用 短链接+delflag作为索引,那么可能导致多次修改的gid路由到同一表中,导致不符合唯一索引 使用deltime能避免这种问题
+        ShortLinkDO delShortLinkDO = ShortLinkDO.builder()
+                .delTime(System.currentTimeMillis())
+                .build();
+        delShortLinkDO.setDelFlag(1);
+        baseMapper.update(delShortLinkDO, updateWrapper);
     }
 }
