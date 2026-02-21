@@ -56,7 +56,7 @@ public interface ShortLinkBrowserStatsMapper extends BaseMapper<ShortLinkBrowser
             "    full_short_url = #{param.fullShortUrl} " +
             "    AND date BETWEEN #{param.startDate} and #{param.endDate} " +
             "GROUP BY " +
-            "    full_short_url, date, browser;")
+            "    full_short_url, browser;")
     List<HashMap<String, Object>> listBrowserStatsByShortLink(@Param("param") ShortLinkStatsReqDTO requestParam);
 
 
@@ -72,7 +72,7 @@ public interface ShortLinkBrowserStatsMapper extends BaseMapper<ShortLinkBrowser
             "    t.gid = #{param.gid} " +
             "    AND s.date BETWEEN #{param.startDate} and #{param.endDate} " +
             "GROUP BY " +
-            "    gid, date, browser;")
+            "    gid, browser;")
     List<HashMap<String, Object>> listBrowserStatsByGroup(@Param("param") ShortLinkGroupStatsReqDTO requestParam);
 
 }
