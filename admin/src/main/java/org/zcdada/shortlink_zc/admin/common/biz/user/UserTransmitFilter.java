@@ -5,11 +5,13 @@ import com.alibaba.fastjson2.JSON;
 import com.google.common.collect.Lists;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.List;
 import java.util.Objects;
 
@@ -68,6 +70,14 @@ public class UserTransmitFilter implements Filter {
             filterChain.doFilter(servletRequest, servletResponse);
         } finally {
             UserContext.removeUser();
+        }
+    }
+
+    private void returnJson(HttpServletResponse response, String json) throws Exception {
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType("text/html; charset=utf-8");
+        try (PrintWriter writer = response.getWriter()) {
+            writer.print(json);
         }
     }
 }

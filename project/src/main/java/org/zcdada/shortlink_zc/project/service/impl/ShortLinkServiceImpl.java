@@ -603,7 +603,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
         int tryCount = 0;
         while (tryCount<10) {
             result=RandomGenerator.generateRandomString();
-            if (!shortLinkCachePenetrationBloomFilter.contains(requestParam.getDomain()+"/"+result)) {
+            if (!shortLinkCachePenetrationBloomFilter.contains(createShortLinkDefaultDomain+"/"+result)) {
                 return result;
             }
             tryCount++;
