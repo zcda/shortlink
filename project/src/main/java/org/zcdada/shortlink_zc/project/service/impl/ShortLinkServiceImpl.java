@@ -51,6 +51,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.zcdada.shortlink_zc.project.common.constant.RedisKeyConstant.GOTO_NULL_LINK_KEY;
+import static org.zcdada.shortlink_zc.project.common.constant.RedisKeyConstant.GOTO_SHORT_LINK_KEY;
 import static org.zcdada.shortlink_zc.project.common.constant.ShortLinkConstant.AMAP_REMOTE_URL;
 
 @Slf4j
@@ -121,7 +123,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
             System.out.println(e.getMessage());
             throw new ServiceException("重复短链接,请稍后再试试");
         }
-        stringRedisTemplate.opsForValue().set(String.format(RedisKeyConstant.GOTO_SHORT_LINK_KEY,
+        stringRedisTemplate.opsForValue().set(String.format(GOTO_SHORT_LINK_KEY,
                 fullShortUrl),
                 shortLinkDO.getOriginUrl(),
                 LinkUtil.getLinkCacheValidTime(shortLinkDO.getValidDate()),
@@ -146,7 +148,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
                 .eq(ShortLinkDO::getFullShortUrl, requestParam.getFullShortUrl())
                 .eq(ShortLinkDO::getDelFlag, 0)
                 .eq(ShortLinkDO::getEnableStatus, 0)
-                .set(Objects.equals(requestParam.getValidDateType(), VailDateTypeEnum.PERMANENT.getValue()), ShortLinkDO::getValidDate, null);
+                .set(Objects.equals(requestParam.getValidDateType(), VailDateTypeEnum.PERMANENT.getType()), ShortLinkDO::getValidDate, null);
 
         ShortLinkDO linkDO = ShortLinkDO.builder()
                 .domain(check.getDomain())
@@ -173,6 +175,17 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
                     build();
             shortLinkGotoMapper.insert(shortLinkGotoDO);
             baseMapper.insert(linkDO);
+        }
+
+        //如果当前短链接有 getValidDateType的修改 或者 过期时间有修改 则删除缓存
+        if (!Objects.equals(check.getValidDateType(), requestParam.getValidDateType())
+                || !Objects.equals(check.getValidDate(), requestParam.getValidDate())) {
+            stringRedisTemplate.delete(String.format(GOTO_SHORT_LINK_KEY, requestParam.getFullShortUrl()));
+            if (check.getValidDate() != null && check.getValidDate().before(new Date())) {
+                if (Objects.equals(requestParam.getValidDateType(), VailDateTypeEnum.PERMANENT.getType()) || requestParam.getValidDate().after(new Date())) {
+                    stringRedisTemplate.delete(String.format(GOTO_NULL_LINK_KEY, requestParam.getFullShortUrl()));
+                }
+            }
         }
     }
 
@@ -219,7 +232,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
 
         String fullShortLink = serverName+serverPort+"/" + shortUri;
 
-        String ori = stringRedisTemplate.opsForValue().get(String.format(RedisKeyConstant.GOTO_SHORT_LINK_KEY,fullShortLink));
+        String ori = stringRedisTemplate.opsForValue().get(String.format(GOTO_SHORT_LINK_KEY,fullShortLink));
         if (StrUtil.isNotBlank(ori)) {
             shortLinkStats(null,fullShortLink, request, response);
             ((HttpServletResponse)response).sendRedirect(ori);
@@ -231,7 +244,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
             return;
         }
 
-        String s = stringRedisTemplate.opsForValue().get(String.format(RedisKeyConstant.GOTO_NULL_LINK_KEY, fullShortLink));
+        String s = stringRedisTemplate.opsForValue().get(String.format(GOTO_NULL_LINK_KEY, fullShortLink));
         if (StrUtil.isNotBlank(s)) {
             ((HttpServletResponse)response).sendRedirect("/page/notfound");
             return;
@@ -241,7 +254,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
         RLock lock = redissonClient.getLock(String.format(RedisKeyConstant.LOCK_GOTO_SHORT_LINK_KEY,fullShortLink));
         lock.lock();
 
-        ori = stringRedisTemplate.opsForValue().get(String.format(RedisKeyConstant.GOTO_SHORT_LINK_KEY,fullShortLink));
+        ori = stringRedisTemplate.opsForValue().get(String.format(GOTO_SHORT_LINK_KEY,fullShortLink));
         if (StrUtil.isNotBlank(ori)) {
             shortLinkStats(null,fullShortLink, request, response);
             ((HttpServletResponse)response).sendRedirect(ori);
@@ -257,7 +270,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
             if(shortLinkGotoDO==null||!shortLinkCachePenetrationBloomFilter.contains(fullShortLink)){
                 //做风控 可能是有人恶意请求错误短链接
                 // 把错误的也放到缓存中，防止一直访问数据库
-                stringRedisTemplate.opsForValue().set(String.format(RedisKeyConstant.GOTO_NULL_LINK_KEY,fullShortLink),"-",5, TimeUnit.MINUTES);
+                stringRedisTemplate.opsForValue().set(String.format(GOTO_NULL_LINK_KEY,fullShortLink),"-",5, TimeUnit.MINUTES);
                 ((HttpServletResponse)response).sendRedirect("/page/notfound");
                 return;
             }
@@ -271,13 +284,13 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
 
             if (shortLinkDO==null||(shortLinkDO.getValidDate()!=null&&shortLinkDO.getValidDate().before(new Date()))){
                     //数据过期
-                    stringRedisTemplate.opsForValue().set(String.format(RedisKeyConstant.GOTO_NULL_LINK_KEY,fullShortLink),"-",5, TimeUnit.MINUTES);
+                    stringRedisTemplate.opsForValue().set(String.format(GOTO_NULL_LINK_KEY,fullShortLink),"-",5, TimeUnit.MINUTES);
                     ((HttpServletResponse)response).sendRedirect("/page/notfound");
                     return;
             }
 
 
-            stringRedisTemplate.opsForValue().set(String.format(RedisKeyConstant.GOTO_SHORT_LINK_KEY,
+            stringRedisTemplate.opsForValue().set(String.format(GOTO_SHORT_LINK_KEY,
                                 shortLinkDO.getFullShortUrl()),
                         shortLinkDO.getOriginUrl(),
                         LinkUtil.getLinkCacheValidTime(shortLinkDO.getValidDate()),

@@ -40,5 +40,5 @@ public class RedisKeyConstant {
      * @Description:  短链接跳转锁 key
      * @DateTime: 2025/12/5 19:29
      */
-    public static final String GOTO_NULL_LINK_KEY = "lock_short_link_goto_%s";
+    public static final String GOTO_NULL_LINK_KEY = "short-link_is-null_goto_%s";
 }
