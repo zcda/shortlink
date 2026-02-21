@@ -23,6 +23,16 @@ short-link:
       amap-key: 956be1236b9d4f2011a8fd5c50c082a0
   domain:
     default: zcdada.ink:8001
+  goto-domain:
+    white-list:
+      enable: true
+      names: '拿个offer,知乎,掘金,博客园,deepseek'
+      details:
+        - nageoffer.com
+        - zhihu.com
+        - juejin.cn
+        - cnblogs.com
+        - deepseek.com
 
 
 mybatis-plus:
