@@ -45,6 +45,7 @@ import org.zcdada.shortlink_zc.project.dto.req.ShortLinkPageReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkUpdateReqDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.*;
 import org.zcdada.shortlink_zc.project.mq.producer.DelayShortLinkStatsProducer;
+import org.zcdada.shortlink_zc.project.mq.producer.ShortLinkStatsSaveProducer;
 import org.zcdada.shortlink_zc.project.service.LinkStatsTodayService;
 import org.zcdada.shortlink_zc.project.service.ShortLinkService;
 import org.zcdada.shortlink_zc.project.service.UrlService;
@@ -75,22 +76,9 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
 
     private final UrlService urlService;
 
-    private final ShortLinkAccessStatsMapper shortLinkAccessStatsMapper;
-    private final ShortLinkLocaleStatsMapper shortLinkLocaleStatsMapper;
-    private final ShortLinkOsStatsMapper shortLinkOsStatsMapper;
-    private final ShortLinkBrowserStatsMapper shortLinkBrowserStatsMapper;
-    private final ShortLinkDeviceStatsMapper shortLinkDeviceStatsMapper;
-    private final ShortLinkNetworkStatsMapper shortLinkNetworkStatsMapper;
-    private final ShortLinkAccessLogsMapper shortLinkAccessLogsMapper;
-    private final ShortLinkStatsTodayMapper shortLinkStatsTodayMapper;
 
-    private final LinkStatsTodayService linkStatsTodayService;
-    private final DelayShortLinkStatsProducer delayShortLinkStatsProducer;
     private final GotoDomainWhiteListConfiguration gotoDomainWhiteListConfiguration;
-
-
-    @Value("${short-link.stats.locale.amap-key}")
-    private String amapKey;
+    private final ShortLinkStatsSaveProducer shortLinkStatsSaveProducer;
 
 
     @Value("${short-link.domain.default}")
@@ -469,132 +457,11 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
     @Override
     public void shortLinkStats(String fullShortUrl, String gid, ShortLinkStatsRecordDTO statsRecord){
 
-        fullShortUrl = Optional.ofNullable(fullShortUrl).orElse(statsRecord.getFullShortUrl());
-        RReadWriteLock readWriteLock = redissonClient.getReadWriteLock(String.format(LOCK_GID_UPDATE_KEY, fullShortUrl));
-        RLock rLock = readWriteLock.readLock();
-        if (!rLock.tryLock()) {
-            delayShortLinkStatsProducer.send(statsRecord);
-            return;
-        }
-        try {
-        //通过cookie判断当前用户是否为老用户
-
-            if (StrUtil.isBlank(gid)) {
-                LambdaQueryWrapper<ShortLinkGotoDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkGotoDO.class)
-                        .eq(ShortLinkGotoDO::getFullShortUrl, statsRecord.getFullShortUrl());
-                ShortLinkGotoDO shortLinkGotoDO = shortLinkGotoMapper.selectOne(queryWrapper);
-                gid = shortLinkGotoDO.getGid();
-            }
-
-
-            Date date = new Date();
-            int hour = DateUtil.hour(date, true);
-            Week week = DateUtil.dayOfWeekEnum(date);
-
-            ShortLinkAccessStatsDO shortLinkAccessStatsDO = ShortLinkAccessStatsDO.builder()
-                    .fullShortUrl(statsRecord.getFullShortUrl())
-                    .pv(1)
-                    .uv(statsRecord.getUvFirstFlag() ? 1 : 0)
-                    .uip(statsRecord.getUipFirstFlag() ? 1 : 0)
-                    .date(date)
-                    .hour(hour)
-                    .weekday(week.getIso8601Value())
-                    .build();
-            shortLinkAccessStatsMapper.shortLinkStats(shortLinkAccessStatsDO);
-
-
-            Map<String,Object> localeParamMap = new HashMap<>();
-            localeParamMap.put("key",amapKey);
-            localeParamMap.put("ip",statsRecord.getRemoteAddr());
-            String localeResultStr = HttpUtil.get(AMAP_REMOTE_URL, localeParamMap);
-            JSONObject localeJsonObject = JSON.parseObject(localeResultStr);
-            String infoCode = localeJsonObject.getString("infocode");
-            ShortLinkLocaleStatsDO shortLinkLocaleStatsDO;
-            if (StrUtil.isNotEmpty(infoCode)&&StrUtil.equals(infoCode,"10000")) {
-                String province = localeJsonObject.getString("province");
-                boolean unknownFlag = StringUtil.equals(province,"[]");
-
-                shortLinkLocaleStatsDO=ShortLinkLocaleStatsDO.builder()
-                        .fullShortUrl(fullShortUrl)
-                        .cnt(1)
-                        .province(unknownFlag?"未知":province)
-                        .city(unknownFlag?"未知": localeJsonObject.getString("city"))
-                        .adcode(unknownFlag?"未知":localeJsonObject.getString("adcode"))
-                        .country("中国")
-                        .date(date)
-                        .build();
-                shortLinkLocaleStatsMapper.shortLinkLocaleStats(shortLinkLocaleStatsDO);
-            }
-
-
-            ShortLinkOsStatsDO shortLinkOsStatsDO = ShortLinkOsStatsDO.builder()
-                    .fullShortUrl(fullShortUrl)
-                    .cnt(1)
-                    .os(statsRecord.getOs())
-                    .date(date)
-                    .build();
-
-            shortLinkOsStatsMapper.shortLinkOsStats(shortLinkOsStatsDO);
-
-
-
-            ShortLinkBrowserStatsDO shortLinkBrowserStatsDO = ShortLinkBrowserStatsDO.builder()
-                    .browser(statsRecord.getBrowser())
-                    .fullShortUrl(fullShortUrl)
-                    .cnt(1)
-                    .date(date)
-                    .build();
-            shortLinkBrowserStatsMapper.shortLinkBrowserStats(shortLinkBrowserStatsDO);
-
-
-            ShortLinkDeviceStatsDO shortLinkDeviceStatsDO = ShortLinkDeviceStatsDO.builder()
-                    .fullShortUrl(fullShortUrl)
-                    .cnt(1)
-                    .device(statsRecord.getDevice())
-                    .date(date)
-                    .build();
-            shortLinkDeviceStatsMapper.shortLinkDeviceStats(shortLinkDeviceStatsDO);
-
-
-            ShortLinkNetworkStatsDO shortLinkNetworkStatsDO = ShortLinkNetworkStatsDO.builder()
-                    .fullShortUrl(fullShortUrl)
-                    .cnt(1)
-                    .network(statsRecord.getNetwork())
-                    .date(date)
-                    .build();
-            shortLinkNetworkStatsMapper.shortLinkNetworkStats(shortLinkNetworkStatsDO);
-
-
-            ShortLinkAccessLogsDO shortLinkAccessLogsDO = ShortLinkAccessLogsDO.builder()
-                    .fullShortUrl(fullShortUrl)
-                    .ip(statsRecord.getRemoteAddr())
-                    .user(statsRecord.getUv())
-                    .ip(statsRecord.getRemoteAddr())
-                    .browser(statsRecord.getBrowser())
-                    .os(statsRecord.getOs())
-                    .device(statsRecord.getDevice())
-                    .locale(localeJsonObject.getString("province"))
-                    .network(statsRecord.getNetwork())
-                    .build();
-            shortLinkAccessLogsMapper.insert(shortLinkAccessLogsDO);
-
-            baseMapper.incrementStats(gid,fullShortUrl, 1, statsRecord.getUvFirstFlag() ? 1 : 0, statsRecord.getUipFirstFlag() ? 1 : 0);
-
-            ShortLinkStatsTodayDO linkStatsTodayDO = ShortLinkStatsTodayDO.builder()
-                    .todayPv(1)
-                    .todayUv(statsRecord.getUvFirstFlag() ? 1 : 0)
-                    .todayUip(statsRecord.getUipFirstFlag() ? 1 : 0)
-                    .fullShortUrl(fullShortUrl)
-                    .date(new Date())
-                    .build();
-            shortLinkStatsTodayMapper.shortLinkTodayState(linkStatsTodayDO);
-
-        }catch (Exception e){
-            throw new ClientException("短链接访问统计异常");
-        }finally {
-            rLock.unlock();
-        }
-
+        Map<String, String> producerMap = new HashMap<>();
+        producerMap.put("fullShortUrl", fullShortUrl);
+        producerMap.put("gid", gid);
+        producerMap.put("statsRecord", JSON.toJSONString(statsRecord));
+        shortLinkStatsSaveProducer.send(producerMap);
 
     }
 
