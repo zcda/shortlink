@@ -16,8 +16,6 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.zcdada.shortlink_zc.admin.common.convention.exception.ClientException;
-import org.zcdada.shortlink_zc.admin.common.convention.exception.ServiceException;
-import org.zcdada.shortlink_zc.admin.common.enums.UserErrorCodeEnum;
 import org.zcdada.shortlink_zc.admin.dao.entity.UserDO;
 import org.zcdada.shortlink_zc.admin.dao.mapper.UserMapper;
 import org.zcdada.shortlink_zc.admin.dto.req.ShortLinkGroupSaveReqDTO;
@@ -61,7 +59,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
         UserDO userDO = baseMapper.selectOne(queryWrapper);
         UserRespDTO Result = new UserRespDTO();
         if (userDO == null) {
-            throw new ServiceException(UserErrorCodeEnum.USER_NULL);
+            return null;
         }
         BeanUtils.copyProperties(userDO, Result);
 
