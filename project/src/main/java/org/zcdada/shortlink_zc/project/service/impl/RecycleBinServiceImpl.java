@@ -76,7 +76,7 @@ public class RecycleBinServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLi
 
 
         //删除空白跳转的内存
-        stringRedisTemplate.delete(String.format(RedisKeyConstant.GOTO_NULL_LINK_KEY,requestParam.getFullShortUrl()));
+        stringRedisTemplate.delete(String.format(RedisKeyConstant.GOTO_IS_NULL_SHORT_LINK_KEY,requestParam.getFullShortUrl()));
 
 
         // 看情况需不需要把从回收站恢复的短链接预热
