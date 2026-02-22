@@ -7,65 +7,62 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
+import org.zcdada.shortlink_zc.admin.common.convention.exception.ClientException;
+import org.zcdada.shortlink_zc.admin.common.convention.result.Results;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.List;
 import java.util.Objects;
 
+import static org.zcdada.shortlink_zc.admin.common.enums.UserErrorCodeEnum.USER_TOKEN_FAIL;
+
 /**
  * 用户信息传输过滤器
  *
  */
-@Component
+
 @RequiredArgsConstructor
 public class UserTransmitFilter implements Filter {
 
     private final StringRedisTemplate stringRedisTemplate;
 
-    private final List<String> IGNORE_URLS = Lists.newArrayList("/api/short-link/admin/v1/user/login",
-//            注册不拦截，修改要拦截
-            "/api/short-link/admin/v1/user",
-            "/api/short-link/admin/v1/user/has-username");
+    private static final List<String> IGNORE_URI = Lists.newArrayList(
+            "/api/short-link/admin/v1/user/login",
+            "/api/short-link/admin/v1/user/has-username"
+    );
 
-
-
-
-
+    @SneakyThrows
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
         HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
         String requestURI = httpServletRequest.getRequestURI();
-        String method = httpServletRequest.getMethod();
-
-        if(!IGNORE_URLS.contains(requestURI)||Objects.equals(method, "PUT")){
-
-                String userId = httpServletRequest.getHeader("username");
+        if (!IGNORE_URI.contains(requestURI)) {
+            String method = httpServletRequest.getMethod();
+            if (!(Objects.equals(requestURI, "/api/short-link/admin/v1/user") && Objects.equals(method, "POST"))) {
+                String username = httpServletRequest.getHeader("username");
                 String token = httpServletRequest.getHeader("token");
-
-                if(!StrUtil.isAllNotBlank(userId,token)){
-                    servletRequest.getRequestDispatcher("/error/filter").forward(servletRequest, servletResponse);
+                if (!StrUtil.isAllNotBlank(username, token)) {
+                    returnJson((HttpServletResponse) servletResponse, JSON.toJSONString(Results.failure(new ClientException(USER_TOKEN_FAIL))));
                     return;
                 }
-                Object userInfoJsonStr = null;
-                try{
-                    userInfoJsonStr = stringRedisTemplate.opsForHash().get("login_"+userId, token);
-                    if(Objects.isNull(userInfoJsonStr)){
-                        // 指定异常处理路径
-                        servletRequest.getRequestDispatcher("/error/filter").forward(servletRequest, servletResponse);
-                        return;
+                Object userInfoJsonStr;
+                try {
+                    userInfoJsonStr = stringRedisTemplate.opsForHash().get("login_" + username, token);
+                    if (userInfoJsonStr == null) {
+                        throw new ClientException(USER_TOKEN_FAIL);
                     }
-                }catch (Exception e){
-                    servletRequest.getRequestDispatcher("/error/filter").forward(servletRequest, servletResponse);
+                } catch (Exception ex) {
+                    returnJson((HttpServletResponse) servletResponse, JSON.toJSONString(Results.failure(new ClientException(USER_TOKEN_FAIL))));
                     return;
                 }
                 UserInfoDTO userInfoDTO = JSON.parseObject(userInfoJsonStr.toString(), UserInfoDTO.class);
                 UserContext.setUser(userInfoDTO);
-
+            }
         }
-
         try {
             filterChain.doFilter(servletRequest, servletResponse);
         } finally {
@@ -73,9 +70,10 @@ public class UserTransmitFilter implements Filter {
         }
     }
 
+
     private void returnJson(HttpServletResponse response, String json) throws Exception {
         response.setCharacterEncoding("UTF-8");
-        response.setContentType("text/html; charset=utf-8");
+        response.setContentType("application/json;charset=utf-8");
         try (PrintWriter writer = response.getWriter()) {
             writer.print(json);
         }

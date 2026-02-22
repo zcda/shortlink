@@ -6,8 +6,11 @@ public enum UserErrorCodeEnum implements IErrorCode {
 
     USER_TOKEN_FAIL("A00200","用户TOKEN验证失败"),
 
-
+    FLOW_LIMIT_ERROR("A000300", "当前系统繁忙，请稍后再试"),
     USER_NULL("B000200","用户记录不存在"),
+
+    // ========== 二级宏观错误码 系统请求操作频繁 ==========
+
     USERNAME_EXIT("B000201","用户名已存在"),
     USE_SAVE_ERROR("B000203","用户记录失败"),
     USER_EXIT("B000202","用户记录已存在");
