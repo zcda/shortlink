@@ -4,7 +4,6 @@ import org.zcdada.shortlink_zc.admin.common.convention.errorcode.IErrorCode;
 
 public enum UserErrorCodeEnum implements IErrorCode {
 
-    USER_TOKEN_FAIL("A00200","用户TOKEN验证失败"),
 
     FLOW_LIMIT_ERROR("A000300", "当前系统繁忙，请稍后再试"),
     USER_NULL("B000200","用户记录不存在"),
