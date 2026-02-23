@@ -1,6 +1,7 @@
 package org.zcdada.shortlink_zc.admin.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -8,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.zcdada.shortlink_zc.admin.common.convention.result.Result;
 import org.zcdada.shortlink_zc.admin.common.convention.result.Results;
+import org.zcdada.shortlink_zc.admin.remote.ShortLinkActualRemoteService;
 import org.zcdada.shortlink_zc.admin.remote.ShortLinkRemoteService;
 import org.zcdada.shortlink_zc.admin.remote.dto.req.RecycleBinRecoverReqDTO;
 import org.zcdada.shortlink_zc.admin.remote.dto.req.RecycleBinRemoveReqDTO;
@@ -23,10 +25,10 @@ import org.zcdada.shortlink_zc.admin.service.RecycleBinService;
 @RestController
 @RequiredArgsConstructor
 public class RecycleBinController {
-    ShortLinkRemoteService shortLinkRemoteService = new ShortLinkRemoteService() {
-    };
 
     private final RecycleBinService recycleBinService;
+
+    private final ShortLinkActualRemoteService shortLinkRemoteService;
 
     /**
      * @Author: zcdada
@@ -59,7 +61,7 @@ public class RecycleBinController {
      * @DateTime: 2025/12/4 12:04
      */
     @GetMapping("/api/short-link/admin/v1/recycle-bin/page")
-    public Result<IPage<ShortLinkPageRespDTO>> pageShortLink(){
+    public Result<Page<ShortLinkPageRespDTO>> pageShortLink(){
         return recycleBinService.pageShortLink();
     }
 

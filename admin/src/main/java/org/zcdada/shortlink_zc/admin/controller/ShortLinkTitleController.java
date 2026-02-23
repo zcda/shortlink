@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.zcdada.shortlink_zc.admin.common.convention.result.Result;
+import org.zcdada.shortlink_zc.admin.remote.ShortLinkActualRemoteService;
 import org.zcdada.shortlink_zc.admin.remote.ShortLinkRemoteService;
 
 
@@ -13,8 +14,7 @@ import org.zcdada.shortlink_zc.admin.remote.ShortLinkRemoteService;
 @RequiredArgsConstructor
 public class ShortLinkTitleController {
 
-    ShortLinkRemoteService shortLinkRemoteService = new ShortLinkRemoteService() {
-    };
+    private final ShortLinkActualRemoteService shortLinkRemoteService;
 
     /**
      * @Author: zcdada

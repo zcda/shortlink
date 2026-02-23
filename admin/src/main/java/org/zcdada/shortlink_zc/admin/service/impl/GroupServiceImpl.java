@@ -24,6 +24,7 @@ import org.zcdada.shortlink_zc.admin.dto.req.ShortLinkGroupOrderReqDTO;
 import org.zcdada.shortlink_zc.admin.dto.req.ShortLinkGroupSaveReqDTO;
 import org.zcdada.shortlink_zc.admin.dto.req.ShortLinkGroupUpdateReqDTO;
 import org.zcdada.shortlink_zc.admin.dto.resp.ShortLinkGroupRespDTO;
+import org.zcdada.shortlink_zc.admin.remote.ShortLinkActualRemoteService;
 import org.zcdada.shortlink_zc.admin.remote.ShortLinkRemoteService;
 import org.zcdada.shortlink_zc.admin.service.GroupService;
 import org.zcdada.shortlink_zc.admin.toolkit.RandomGenerator;
@@ -51,9 +52,7 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper,GroupDO> implement
     private Integer groupMaxNum;
 
 
-    ShortLinkRemoteService shortLinkRemoteService = new ShortLinkRemoteService() {
-    };
-
+    private final ShortLinkActualRemoteService shortLinkRemoteService;
     @Override
     public void saveGroup(ShortLinkGroupSaveReqDTO requestParam) {
         saveGroup(UserContext.getUsername(),requestParam);

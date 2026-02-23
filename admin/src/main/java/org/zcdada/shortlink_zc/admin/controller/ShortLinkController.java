@@ -1,11 +1,15 @@
 package org.zcdada.shortlink_zc.admin.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.web.bind.annotation.*;
 import org.zcdada.shortlink_zc.admin.common.convention.result.Result;
 import org.zcdada.shortlink_zc.admin.common.convention.result.Results;
+import org.zcdada.shortlink_zc.admin.dto.resp.ShortLinkGroupRespDTO;
+import org.zcdada.shortlink_zc.admin.remote.ShortLinkActualRemoteService;
 import org.zcdada.shortlink_zc.admin.remote.ShortLinkRemoteService;
 import org.zcdada.shortlink_zc.admin.remote.dto.req.ShortLinkBatchCreateReqDTO;
 import org.zcdada.shortlink_zc.admin.remote.dto.req.ShortLinkCreateReqDTO;
@@ -17,14 +21,15 @@ import org.zcdada.shortlink_zc.admin.toolkit.EasyExcelWebUtil;
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 public class ShortLinkController {
 
-    ShortLinkRemoteService shortLinkRemoteService = new ShortLinkRemoteService() {
-    };
-    @GetMapping("/api/short-link/admin/v1/page")
-    public Result<IPage<ShortLinkPageRespDTO>> pageShortLink(ShortLinkPageReqDTO requestParam){
 
-        return shortLinkRemoteService.pageShortLink(requestParam);
+    private final ShortLinkActualRemoteService shortLinkRemoteService;
+    @GetMapping("/api/short-link/admin/v1/page")
+    public Result<Page<ShortLinkPageRespDTO>> pageShortLink(ShortLinkPageReqDTO requestParam){
+
+        return shortLinkRemoteService.pageShortLink(requestParam.getGid(), requestParam.getOrderTag(), requestParam.getCurrent(), requestParam.getSize());
     }
 
 
