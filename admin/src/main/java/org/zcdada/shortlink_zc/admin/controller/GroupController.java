@@ -67,7 +67,7 @@ public class GroupController {
      * @Description: 改变短链接分组的排序
      * @DateTime: 2025/11/26 16:40
      */
-    @PutMapping("/api/short-link/admin/v1/group/order")
+    @PostMapping("/api/short-link/admin/v1/group/sort")
     public Result<Void> updateOrderGroup(@RequestBody List<ShortLinkGroupOrderReqDTO> requestParam){
         groupService.updateGroupOrder(requestParam);
 
