@@ -16,6 +16,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.zcdada.shortlink_zc.admin.common.biz.user.UserContext;
 import org.zcdada.shortlink_zc.admin.common.convention.exception.ClientException;
 import org.zcdada.shortlink_zc.admin.dao.entity.UserDO;
 import org.zcdada.shortlink_zc.admin.dao.mapper.UserMapper;
@@ -29,6 +30,7 @@ import org.zcdada.shortlink_zc.admin.service.GroupService;
 import org.zcdada.shortlink_zc.admin.service.UserService;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -152,7 +154,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
 
     @Override
     public void update(UserUpdateDTO requestParam) {
-        //todo 验证当前用户是否为登录用户
+        //用户名是不可修改的
+        if (!Objects.equals(requestParam.getUsername(), UserContext.getUsername())) {
+            throw new ClientException("当前登录用户修改请求异常");
+        }
         LambdaUpdateWrapper<UserDO> updateWrapper = Wrappers.lambdaUpdate(UserDO.class)
                 .eq(UserDO::getUsername, requestParam.getUsername());
         baseMapper.update(BeanUtil.toBean(requestParam,UserDO.class),updateWrapper);
