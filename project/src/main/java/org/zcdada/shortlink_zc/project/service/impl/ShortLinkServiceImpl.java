@@ -138,6 +138,10 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
         }catch (Exception e){
             log.warn("重复短链接");
             System.out.println(e.getMessage());
+            //并发情况下有极低概率多个相同fullShortUrl打入数据库,但是还没更新缓存shortLinkCachePenetrationBloomFilter
+            if(!shortLinkCachePenetrationBloomFilter.contains(fullShortUrl)){
+                shortLinkCachePenetrationBloomFilter.add(fullShortUrl);
+            }
             throw new ServiceException("重复短链接,请稍后再试试");
         }
         stringRedisTemplate.opsForValue().set(String.format(GOTO_SHORT_LINK_KEY,
