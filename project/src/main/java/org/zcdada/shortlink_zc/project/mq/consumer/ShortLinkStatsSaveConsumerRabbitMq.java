@@ -119,13 +119,12 @@ public class ShortLinkStatsSaveConsumerRabbitMq {
         try {
             // 2. 解析消息
             Map<String, String> producerMap = JSON.parseObject(body, Map.class);
-            String fullShortUrl = producerMap.get("fullShortUrl");
-            if (fullShortUrl != null) {
-                String gid = producerMap.get("gid");
-                ShortLinkStatsRecordDTO statsRecord = JSON.parseObject(producerMap.get("statsRecord"), ShortLinkStatsRecordDTO.class);
-                // 3. 执行业务逻辑（复用原有 actualSaveShortLinkStats 方法）
-                actualSaveShortLinkStats(fullShortUrl, gid, statsRecord);
-            }
+
+
+            ShortLinkStatsRecordDTO statsRecord = JSON.parseObject(producerMap.get("statsRecord"), ShortLinkStatsRecordDTO.class);
+            // 3. 执行业务逻辑（复用原有 actualSaveShortLinkStats 方法）
+            actualSaveShortLinkStats(statsRecord);
+
 
             // 4. 设置幂等完成标识
             messageQueueIdempotentHandler.setAccomplish(messageId);
@@ -146,20 +145,20 @@ public class ShortLinkStatsSaveConsumerRabbitMq {
             }
         }
     }
-    public void actualSaveShortLinkStats(String fullShortUrl, String gid, ShortLinkStatsRecordDTO statsRecord) {
-        fullShortUrl = Optional.ofNullable(fullShortUrl).orElse(statsRecord.getFullShortUrl());
+    public void actualSaveShortLinkStats(ShortLinkStatsRecordDTO statsRecord) {
+        String fullShortUrl = statsRecord.getFullShortUrl();
         RReadWriteLock readWriteLock = redissonClient.getReadWriteLock(String.format(LOCK_GID_UPDATE_KEY, fullShortUrl));
         RLock rLock = readWriteLock.readLock();
         rLock.lock();
         try {
             //通过cookie判断当前用户是否为老用户
 
-            if (StrUtil.isBlank(gid)) {
-                LambdaQueryWrapper<ShortLinkGotoDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkGotoDO.class)
+            //怕消费的时候使用的gid被修改了,所以这里重新查gid
+            LambdaQueryWrapper<ShortLinkGotoDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkGotoDO.class)
                         .eq(ShortLinkGotoDO::getFullShortUrl, statsRecord.getFullShortUrl());
-                ShortLinkGotoDO shortLinkGotoDO = shortLinkGotoMapper.selectOne(queryWrapper);
-                gid = shortLinkGotoDO.getGid();
-            }
+            ShortLinkGotoDO shortLinkGotoDO = shortLinkGotoMapper.selectOne(queryWrapper);
+            String gid = shortLinkGotoDO.getGid();
+
 
 
             Date date = new Date();

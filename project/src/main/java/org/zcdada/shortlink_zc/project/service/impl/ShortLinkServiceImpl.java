@@ -356,7 +356,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
         String ori = stringRedisTemplate.opsForValue().get(String.format(GOTO_SHORT_LINK_KEY,fullShortLink));
         if (StrUtil.isNotBlank(ori)) {
             ShortLinkStatsRecordDTO statsRecord = buildLinkStatsRecordAndSetUser(fullShortLink, request, response);
-            shortLinkStats(fullShortLink, null, statsRecord);
+            shortLinkStats(statsRecord);
             ((HttpServletResponse)response).sendRedirect(ori);
             return;
         }
@@ -379,7 +379,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
         ori = stringRedisTemplate.opsForValue().get(String.format(GOTO_SHORT_LINK_KEY,fullShortLink));
         if (StrUtil.isNotBlank(ori)) {
             ShortLinkStatsRecordDTO statsRecord = buildLinkStatsRecordAndSetUser(fullShortLink, request, response);
-            shortLinkStats(fullShortLink, null, statsRecord);
+            shortLinkStats(statsRecord);
             ((HttpServletResponse)response).sendRedirect(ori);
             return;
         }
@@ -420,7 +420,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
                         TimeUnit.MILLISECONDS
                 );
             ShortLinkStatsRecordDTO statsRecord = buildLinkStatsRecordAndSetUser(fullShortLink, request, response);
-            shortLinkStats(fullShortLink, shortLinkDO.getGid(), statsRecord);
+            shortLinkStats(statsRecord);
             ((HttpServletResponse)response).sendRedirect(shortLinkDO.getOriginUrl());
 
 
@@ -462,11 +462,9 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
      * @DateTime: 2025/12/11 17:09
      */
     @Override
-    public void shortLinkStats(String fullShortUrl, String gid, ShortLinkStatsRecordDTO statsRecord){
+    public void shortLinkStats(ShortLinkStatsRecordDTO statsRecord){
 
         Map<String, String> producerMap = new HashMap<>();
-        producerMap.put("fullShortUrl", fullShortUrl);
-        producerMap.put("gid", gid);
         producerMap.put("statsRecord", JSON.toJSONString(statsRecord));
         shortLinkStatsSaveProducer.send(producerMap);
 
