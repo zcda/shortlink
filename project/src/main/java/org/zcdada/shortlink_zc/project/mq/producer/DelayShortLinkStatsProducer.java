@@ -21,6 +21,7 @@ import static org.zcdada.shortlink_zc.project.common.constant.RedisKeyConstant.D
  */
 @Component
 @RequiredArgsConstructor
+@Deprecated
 public class DelayShortLinkStatsProducer {
 
     private final RedissonClient redissonClient;

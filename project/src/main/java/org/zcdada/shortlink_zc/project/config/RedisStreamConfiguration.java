@@ -4,7 +4,6 @@ package org.zcdada.shortlink_zc.project.config;
 
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -26,8 +25,7 @@ import static org.zcdada.shortlink_zc.project.common.constant.RedisKeyConstant.S
 import static org.zcdada.shortlink_zc.project.common.constant.RedisKeyConstant.SHORT_LINK_STATS_STREAM_TOPIC_KEY;
 
 /**
- * Redis Stream 消息队列配置
- * 公众号：马丁玩编程，回复：加群，添加马哥微信（备注：link）获取项目资料
+ * Redis Stream 消息队列  配置
  */
 @Configuration
 @RequiredArgsConstructor
