@@ -20,6 +20,7 @@ import java.util.Map;
  * @Description: 远程调用 后期要改成 orin
  * @DateTime: 2025/12/4 10:58
  */
+@Deprecated
 public interface ShortLinkRemoteService {
 
     default Result<IPage<ShortLinkPageRespDTO>> pageShortLink(ShortLinkPageReqDTO requestParam){
