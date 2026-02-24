@@ -253,7 +253,8 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
 
         //如果当前短链接有 getValidDateType的修改 或者 过期时间有修改 则删除缓存
         if (!Objects.equals(check.getValidDateType(), requestParam.getValidDateType())
-                || !Objects.equals(check.getValidDate(), requestParam.getValidDate())) {
+                || !Objects.equals(check.getValidDate(), requestParam.getValidDate())
+                || !Objects.equals(check.getOriginUrl(), requestParam.getOriginUrl())) {
             stringRedisTemplate.delete(String.format(GOTO_SHORT_LINK_KEY, requestParam.getFullShortUrl()));
             if (check.getValidDate() != null && check.getValidDate().before(new Date())) {
                 if (Objects.equals(requestParam.getValidDateType(), VailDateTypeEnum.PERMANENT.getType()) || requestParam.getValidDate().after(new Date())) {
