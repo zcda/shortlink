@@ -15,6 +15,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.zcdada.shortlink_zc.admin.common.convention.exception.ClientException;
 import org.zcdada.shortlink_zc.admin.dao.entity.UserDO;
 import org.zcdada.shortlink_zc.admin.dao.mapper.UserMapper;
@@ -73,35 +74,30 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
     }
 
     @Override
+    @Transactional
     public void register(UserRegisterReqDTO requestParam) {
         if(hasUsername(requestParam.getUsername())) {
             throw new ClientException(USERNAME_EXIT);
         }
         //添加分布式锁，防止用户 恶意请求短时间内使用同一用户名大量注册
         RLock lock = redissonClient.getLock(LOCK_USER_REGISTER_KEY + requestParam.getUsername());
-        try{
-            if (lock.tryLock()) {
-                try {
-                    //redis 布隆过滤器 被缓存清空的情况
-                    int insert=baseMapper.insert(BeanUtil.toBean(requestParam, UserDO.class));
-                    if(insert < 1) {
-                        throw new ClientException(USE_SAVE_ERROR);
-                    }
-                }catch (DuplicateKeyException e){
-                    throw new ClientException(USER_EXIT);
-                }
-
-                userRegisterCachePenetrationBloomFilter.add(requestParam.getUsername());
-                groupService.saveGroup(requestParam.getUsername(),new ShortLinkGroupSaveReqDTO("默认分组"));
-                return;
-            }
+        //修复之前没拿到锁就释放锁导致输出的异常有问题
+        if (!lock.tryLock()) {
             throw new ClientException(USERNAME_EXIT);
+        }
+        try {
+            //redis 布隆过滤器 被缓存清空的情况
+            int insert=baseMapper.insert(BeanUtil.toBean(requestParam, UserDO.class));
+            if(insert < 1) {
+                throw new ClientException(USE_SAVE_ERROR);
+            }
+        }catch (DuplicateKeyException e){
+            throw new ClientException(USER_EXIT);
         }finally {
             lock.unlock();
         }
-
-
-
+        groupService.saveGroup(requestParam.getUsername(),new ShortLinkGroupSaveReqDTO("默认分组"));
+        userRegisterCachePenetrationBloomFilter.add(requestParam.getUsername());
     }
 
     @Override
