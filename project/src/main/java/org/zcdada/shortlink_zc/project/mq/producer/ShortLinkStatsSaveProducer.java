@@ -15,6 +15,7 @@ import static org.zcdada.shortlink_zc.project.common.constant.RedisKeyConstant.S
  */
 @Component
 @RequiredArgsConstructor
+@Deprecated
 public class ShortLinkStatsSaveProducer {
 
     private final StringRedisTemplate stringRedisTemplate;

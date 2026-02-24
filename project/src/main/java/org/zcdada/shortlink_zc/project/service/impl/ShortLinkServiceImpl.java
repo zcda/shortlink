@@ -46,6 +46,7 @@ import org.zcdada.shortlink_zc.project.dto.req.ShortLinkUpdateReqDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.*;
 import org.zcdada.shortlink_zc.project.mq.producer.DelayShortLinkStatsProducer;
 import org.zcdada.shortlink_zc.project.mq.producer.ShortLinkStatsSaveProducer;
+import org.zcdada.shortlink_zc.project.mq.producer.ShortLinkStatsSaveProducerRabbitMq;
 import org.zcdada.shortlink_zc.project.service.LinkStatsTodayService;
 import org.zcdada.shortlink_zc.project.service.ShortLinkService;
 import org.zcdada.shortlink_zc.project.service.UrlService;
@@ -78,7 +79,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
 
 
     private final GotoDomainWhiteListConfiguration gotoDomainWhiteListConfiguration;
-    private final ShortLinkStatsSaveProducer shortLinkStatsSaveProducer;
+    private final ShortLinkStatsSaveProducerRabbitMq shortLinkStatsSaveProducer;
 
 
     @Value("${short-link.domain.default}")

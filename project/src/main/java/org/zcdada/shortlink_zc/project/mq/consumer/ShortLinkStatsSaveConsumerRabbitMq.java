@@ -1,4 +1,3 @@
-
 package org.zcdada.shortlink_zc.project.mq.consumer;
 
 import cn.hutool.core.date.DateUtil;
@@ -9,7 +8,7 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-
+import com.rabbitmq.client.Channel;
 import jodd.util.StringUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,15 +16,14 @@ import org.redisson.api.RBloomFilter;
 import org.redisson.api.RLock;
 import org.redisson.api.RReadWriteLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.connection.stream.MapRecord;
-import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.stream.StreamListener;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.zcdada.shortlink_zc.project.common.convention.exception.ClientException;
-import org.zcdada.shortlink_zc.project.common.convention.exception.ServiceException;
 import org.zcdada.shortlink_zc.project.config.GotoDomainWhiteListConfiguration;
 import org.zcdada.shortlink_zc.project.dao.entity.*;
 import org.zcdada.shortlink_zc.project.dao.mapper.*;
@@ -36,21 +34,22 @@ import org.zcdada.shortlink_zc.project.mq.producer.ShortLinkStatsSaveProducer;
 import org.zcdada.shortlink_zc.project.service.LinkStatsTodayService;
 import org.zcdada.shortlink_zc.project.service.UrlService;
 
-import java.util.*;
+import java.io.IOException;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 import static org.zcdada.shortlink_zc.project.common.constant.RedisKeyConstant.LOCK_GID_UPDATE_KEY;
 import static org.zcdada.shortlink_zc.project.common.constant.ShortLinkConstant.AMAP_REMOTE_URL;
+import static org.zcdada.shortlink_zc.project.mq.config.RabbitMQConfig.STATS_QUEUE;
 
-
-/**
- * 短链接监控状态保存消息队列消费者
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@Deprecated
-public class ShortLinkStatsSaveConsumer implements StreamListener<String, MapRecord<String, String, String>> {
-
+public class ShortLinkStatsSaveConsumerRabbitMq {
+    private final MessageQueueIdempotentHandler messageQueueIdempotentHandler;
+    // 其他依赖注入保持不变（shortLinkMapper、shortLinkAccessStatsMapper 等）
     private final RBloomFilter<String> shortLinkCachePenetrationBloomFilter;
 
     private final ShortLinkGotoMapper shortLinkGotoMapper;
@@ -75,50 +74,78 @@ public class ShortLinkStatsSaveConsumer implements StreamListener<String, MapRec
     private final GotoDomainWhiteListConfiguration gotoDomainWhiteListConfiguration;
     private final DelayShortLinkStatsProducer delayShortLinkStatsProducer;
 
-    private final MessageQueueIdempotentHandler messageQueueIdempotentHandler;
 
     @Value("${short-link.stats.locale.amap-key}")
     private String amapKey;
+    /**
+     * 监听 RabbitMQ 队列，手动确认模式
+     */
+    @RabbitListener(queues = STATS_QUEUE, ackMode = "MANUAL")
+    public void onMessage(Message message, Channel channel, @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
+        String messageId = message.getMessageProperties().getMessageId(); // 需要生产者设置消息ID
+        // 如果生产者未设置，可以使用 messageId 或自定义唯一标识，这里假设消息中有 fullShortUrl 等组合，但最好显式设置消息ID
+        // 为简单起见，我们使用消息内容的哈希或自定义ID，但建议生产者在发送时设置 messageId
+        // 此处采用 messageId 或生成一个唯一键
+        if (messageId == null) {
+            // 如果没有 messageId，可以自己构造一个，例如使用 deliveryTag 或其他
+            // 这里演示使用 deliveryTag 作为幂等键的一部分，但注意多个节点可能重复？
+            // 最好生产者设置唯一ID
+            messageId = "msg_" + deliveryTag;
+        }
 
+        String body = new String(message.getBody());
+        log.info("接收到消息，ID: {}, body: {}", messageId, body);
 
-    @Override
-    public void onMessage(MapRecord<String, String, String> message) {
-        String stream = message.getStream();
-        RecordId id = message.getId();
-        if (!messageQueueIdempotentHandler.isMessageProcessed(id.toString())){
-            //是否完成是怕 状态更新出意外了 又没有删掉message
-            if (messageQueueIdempotentHandler.isAccomplish(id.toString()))
-            {
+        // 1. 幂等检查
+        if (!messageQueueIdempotentHandler.isMessageProcessed(messageId)) {
+            // 消息已处理过，检查是否完成
+            if (messageQueueIdempotentHandler.isAccomplish(messageId)) {
+                // 已完成，直接确认消息
+                try {
+                    channel.basicAck(deliveryTag, false);
+                } catch (IOException e) {
+                    log.error("确认消息失败", e);
+                }
                 return;
-            }else{
-                throw new ServiceException("消息未完成流程,需要消息队列重试");
+            } else {
+                // 未完成，需要重试（可能是之前处理失败）
+                // 这里抛出异常让 Spring 重试，但需要确保幂等标识未删除？或者我们可以选择重新处理
+                // 为了简化，我们删除幂等标识并重新处理
+                messageQueueIdempotentHandler.delMessageProcessed(messageId);
+                // 继续执行，重新处理
             }
         }
-        try{
-            Map<String, String> producerMap = message.getValue();
+
+        try {
+            // 2. 解析消息
+            Map<String, String> producerMap = JSON.parseObject(body, Map.class);
             String fullShortUrl = producerMap.get("fullShortUrl");
-            if (StrUtil.isNotBlank(fullShortUrl)) {
+            if (fullShortUrl != null) {
                 String gid = producerMap.get("gid");
                 ShortLinkStatsRecordDTO statsRecord = JSON.parseObject(producerMap.get("statsRecord"), ShortLinkStatsRecordDTO.class);
+                // 3. 执行业务逻辑（复用原有 actualSaveShortLinkStats 方法）
                 actualSaveShortLinkStats(fullShortUrl, gid, statsRecord);
             }
-            stringRedisTemplate.opsForStream().delete(Objects.requireNonNull(stream), id.getValue());
-        }catch (Throwable ex){
-            // 某某某情况宕机了
 
-            log.error("记录短链接监控消费异常", ex);
+            // 4. 设置幂等完成标识
+            messageQueueIdempotentHandler.setAccomplish(messageId);
+
+            // 5. 手动确认消息
+            channel.basicAck(deliveryTag, false);
+            log.info("消息处理成功，已确认: {}", messageId);
+        } catch (Exception e) {
+            log.error("消息处理异常，ID: {}", messageId, e);
+            // 处理失败，删除幂等标识以便重试
+            messageQueueIdempotentHandler.delMessageProcessed(messageId);
             try {
-                messageQueueIdempotentHandler.delMessageProcessed(id.toString());
-            } catch (Throwable remoteEx) {
-                log.error("删除幂等标识错误", remoteEx);
+                // 拒绝消息，并重新入队（requeue = true）
+                // 如果希望失败后不重新入队（如业务异常），可以设置 requeue = false，并可能进入死信队列
+                channel.basicNack(deliveryTag, false, true);
+            } catch (IOException ex) {
+                log.error("消息拒绝失败", ex);
             }
-            throw ex;
         }
-        messageQueueIdempotentHandler.setAccomplish(id.toString());
-
     }
-
-
     public void actualSaveShortLinkStats(String fullShortUrl, String gid, ShortLinkStatsRecordDTO statsRecord) {
         fullShortUrl = Optional.ofNullable(fullShortUrl).orElse(statsRecord.getFullShortUrl());
         RReadWriteLock readWriteLock = redissonClient.getReadWriteLock(String.format(LOCK_GID_UPDATE_KEY, fullShortUrl));
@@ -243,4 +270,5 @@ public class ShortLinkStatsSaveConsumer implements StreamListener<String, MapRec
             rLock.unlock();
         }
     }
+
 }
