@@ -41,7 +41,7 @@ public class ShortLinkStatsController {
      */
     @GetMapping("/api/short-link/admin/v1/stats/access-record")
     public Result<Page<ShortLinkStatsAccessRecordRespDTO>> shortLinkStatsAccessRecord(ShortLinkStatsAccessRecordReqDTO requestParam) {
-        return shortLinkRemoteService.shortLinkStatsAccessRecord(requestParam.getFullShortUrl(),requestParam.getFullShortUrl(),requestParam.getStartDate(),requestParam.getEndDate(), requestParam.getCurrent(), requestParam.getSize());
+        return shortLinkRemoteService.shortLinkStatsAccessRecord(requestParam.getFullShortUrl(),requestParam.getGid(),requestParam.getStartDate(),requestParam.getEndDate(), requestParam.getCurrent(), requestParam.getSize());
     }
 
 

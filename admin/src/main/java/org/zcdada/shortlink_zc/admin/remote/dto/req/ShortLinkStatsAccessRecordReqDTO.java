@@ -15,10 +15,10 @@ public class ShortLinkStatsAccessRecordReqDTO extends Page {
      */
     private String fullShortUrl;
 
-//    /**
-//     * 分组标识
-//     */
-//    private String gid;
+    /**
+     * 分组标识
+     */
+    private String gid;
 
     /**
      * 开始日期

@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Date;
+
 /**
  * 短链接统计实体
  */
@@ -58,4 +60,9 @@ public class ShortLinkStatsRecordDTO {
      * UIP访问标识
      */
     private Boolean uipFirstFlag;
+
+    /**
+     * 当前时间
+     */
+    private Date currentDate;
 }

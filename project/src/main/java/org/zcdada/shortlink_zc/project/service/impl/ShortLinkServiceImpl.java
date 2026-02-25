@@ -49,6 +49,7 @@ import org.zcdada.shortlink_zc.project.mq.producer.ShortLinkStatsSaveProducer;
 import org.zcdada.shortlink_zc.project.mq.producer.ShortLinkStatsSaveProducerRabbitMq;
 import org.zcdada.shortlink_zc.project.service.LinkStatsTodayService;
 import org.zcdada.shortlink_zc.project.service.ShortLinkService;
+import org.zcdada.shortlink_zc.project.service.ShortLinkStatsService;
 import org.zcdada.shortlink_zc.project.service.UrlService;
 import org.zcdada.shortlink_zc.project.toolkit.IpUtils;
 import org.zcdada.shortlink_zc.project.toolkit.LinkUtil;
@@ -76,6 +77,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
     private final RedissonClient redissonClient;
 
     private final UrlService urlService;
+    private final ShortLinkStatsService shortLinkStatsService;
 
 
     private final GotoDomainWhiteListConfiguration gotoDomainWhiteListConfiguration;
@@ -106,7 +108,8 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
     public ShortLinkCreateRespDTO createShortLink(ShortLinkCreateReqDTO requestParam) {
         verificationWhitelist(requestParam.getOriginUrl());
 
-        // todo 检查是否为当前用户的gid且存在
+        shortLinkStatsService.checkGroupBelongToUser(requestParam.getGid());
+
         String shortLinkUri = getShortLink(requestParam);
         String fullShortUrl=createShortLinkDefaultDomain + "/" + shortLinkUri;
         ShortLinkDO shortLinkDO = new ShortLinkDO().builder()
@@ -338,6 +341,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
                 .browser(browser)
                 .device(device)
                 .network(network)
+                .currentDate(new Date())
                 .build();
     }
     @SneakyThrows

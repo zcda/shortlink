@@ -42,4 +42,6 @@ public interface ShortLinkStatsService {
     ShortLinkStatsRespDTO groupShortLinkStats(ShortLinkGroupStatsReqDTO requestParam);
 
     IPage<ShortLinkStatsAccessRecordRespDTO> groupShortLinkStatsAccessRecord(ShortLinkGroupStatsAccessRecordReqDTO requestParam);
+
+    void checkGroupBelongToUser(String gid);
 }

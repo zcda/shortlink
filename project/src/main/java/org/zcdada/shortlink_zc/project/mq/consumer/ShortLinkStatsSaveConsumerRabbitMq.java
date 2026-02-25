@@ -161,7 +161,7 @@ public class ShortLinkStatsSaveConsumerRabbitMq {
 
 
 
-            Date date = new Date();
+            Date date = statsRecord.getCurrentDate();
             int hour = DateUtil.hour(date, true);
             Week week = DateUtil.dayOfWeekEnum(date);
 
@@ -259,7 +259,7 @@ public class ShortLinkStatsSaveConsumerRabbitMq {
                     .todayUv(statsRecord.getUvFirstFlag() ? 1 : 0)
                     .todayUip(statsRecord.getUipFirstFlag() ? 1 : 0)
                     .fullShortUrl(fullShortUrl)
-                    .date(new Date())
+                    .date(statsRecord.getCurrentDate())
                     .build();
             shortLinkStatsTodayMapper.shortLinkTodayState(linkStatsTodayDO);
 
