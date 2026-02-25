@@ -112,7 +112,9 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper,GroupDO> implement
 
     private String saveGroupUniqueReturnGid() {
         String gid = RandomGenerator.generateRandomString();
-        if (!gidRegisterCachePenetrationBloomFilter.contains(gid)) {
+        if (gidRegisterCachePenetrationBloomFilter.contains(gid)){{
+            return null;
+        }}else{
             GroupUniqueDO groupUniqueDO = GroupUniqueDO.builder()
                     .gid(gid)
                     .build();
