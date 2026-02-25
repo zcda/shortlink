@@ -29,7 +29,7 @@ rules:
         tableStrategy:
           # 用于单分片键的标准分片场景
           standard:
-            # 分片键
+            # 分片键 同一用户的组 都在一个表里 合理
             shardingColumn: username
             # 分片算法，对应 rules[0].shardingAlgorithms
             shardingAlgorithmName: group_table_hash_mod

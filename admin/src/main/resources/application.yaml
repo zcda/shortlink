@@ -22,6 +22,7 @@ spring:
 short-link:
   group:
     max-num: 3
+    max-retry-num: 10
   flow-limit:
     enable: true
     time-window: 1
