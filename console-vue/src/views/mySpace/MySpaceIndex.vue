@@ -428,7 +428,8 @@ const initStatsFormData = () => {
 }
 const visitLink = {
   fullShortUrl: '',
-  gid: ''
+  gid: '',
+  enableStatus: null
 }
 // 打开的图表是分组（true为分组）的还是单链的
 const isGroup = ref(false)
@@ -447,6 +448,7 @@ const chartsVisible = async (rowInfo, dateList) => {
   // 后续修改时间的时候拿去用
   visitLink.fullShortUrl = fullShortUrl
   visitLink.gid = gid
+  visitLink.enableStatus = enableStatus
   chartsInfoRef?.value.isVisible()
   // 如果没有时间传值，就默认查找过去一周的数据
   if (!dateList) {
@@ -471,9 +473,7 @@ const chartsVisible = async (rowInfo, dateList) => {
 }
 // 图表修改时间后重新请求数
 const changeTimeData = async (rowInfo, dateList) => {
-  const { fullShortUrl, gid } = rowInfo
-  visitLink.fullShortUrl = fullShortUrl
-  visitLink.gid = gid
+  const { fullShortUrl, gid, enableStatus } = rowInfo
   if (!dateList) {
     initStatsFormData()
   } else {
@@ -488,8 +488,8 @@ const changeTimeData = async (rowInfo, dateList) => {
     res = await API.group.queryGroupStats({ ...statsFormData, fullShortUrl, gid })
     tableRes = await API.group.queryGroupTable({ gid, ...statsFormData })
   } else {
-    res = await API.smallLinkPage.queryLinkStats({ ...statsFormData, fullShortUrl, gid })
-    tableRes = await API.smallLinkPage.queryLinkTable({ gid, fullShortUrl, ...statsFormData })
+    res = await API.smallLinkPage.queryLinkStats({ ...statsFormData, fullShortUrl, gid, enableStatus })
+    tableRes = await API.smallLinkPage.queryLinkTable({ gid, fullShortUrl, ...statsFormData, enableStatus })
   }
   tableInfo.value = tableRes
   chartsInfo.value = res?.data?.data
@@ -685,7 +685,7 @@ const deleteGroup = async (gid) => {
     ElMessage.success('删除成功')
     getGroupInfo(queryPage)
   } else {
-    ElMessage.error('删除失败')
+    ElMessage.error(res.data.message)
   }
 }
 // 编辑分组
@@ -767,8 +767,12 @@ const toRecycleBin = (data) => {
   API.smallLinkPage
     .toRecycleBin({ gid, fullShortUrl })
     .then((res) => {
-      ElMessage.success('删除成功')
-      getGroupInfo(queryPage)
+      if (res?.data?.code !== '0') {
+        ElMessage.error(res.data.message)
+      } else {
+        ElMessage.success('删除成功')
+        getGroupInfo(queryPage)
+      }
     })
     .catch((reason) => {
       ElMessage.error('删除失败')
@@ -795,8 +799,12 @@ const removeLink = (data) => {
   API.smallLinkPage
     .removeLink({ gid, fullShortUrl })
     .then((res) => {
-      ElMessage.success('删除成功')
-      queryRecycleBinPage()
+      if (res?.data?.code !== '0') {
+        ElMessage.error(res.data.message)
+      } else {
+        ElMessage.success('删除成功')
+        queryRecycleBinPage()
+      }
     })
     .catch((reason) => {
       ElMessage.error('删除失败')
