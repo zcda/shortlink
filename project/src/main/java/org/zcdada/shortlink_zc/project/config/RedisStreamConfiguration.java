@@ -29,6 +29,7 @@ import static org.zcdada.shortlink_zc.project.common.constant.RedisKeyConstant.S
  */
 @Configuration
 @RequiredArgsConstructor
+@Deprecated
 public class RedisStreamConfiguration {
 
     private final RedisConnectionFactory redisConnectionFactory;
