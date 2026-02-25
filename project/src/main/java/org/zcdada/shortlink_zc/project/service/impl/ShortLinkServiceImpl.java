@@ -181,7 +181,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
         ShortLinkDO linkDO = ShortLinkDO.builder()
                 .domain(check.getDomain())
                 .shortUri(check.getShortUri())
-                .favicon(check.getFavicon())
+                .favicon(Objects.equals(requestParam.getOriginUrl(), check.getOriginUrl()) ? check.getFavicon() : urlService.getFavicon(requestParam.getOriginUrl()))
                 .createdType(check.getCreatedType())
                 .originUrl(check.getOriginUrl())
                 .validDateType(requestParam.getValidDateType())
