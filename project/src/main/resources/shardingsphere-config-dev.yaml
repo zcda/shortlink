@@ -1,73 +1,62 @@
+mode:
+  type: Standalone
+  repository:
+    type: JDBC
+
 # 数据源集合
 dataSources:
   ds_0:
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
-    driverClassName: com.mysql.cj.jdbc.Driver
-    jdbcUrl: jdbc:mysql://127.0.0.1:3306/link_zc?useUnicode=true&characterEncoding=UTF-8&rewriteBatchedStatements=true&allowMultiQueries=true&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://127.0.0.1:3306/link_zc?useUnicode=true&characterEncoding=UTF-8&rewriteBatchedStatements=true&allowMultiQueries=true&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
     password: root
 
 rules:
-  # 分片规则，采用hash 取余算法
+  # 5.4.0+ 单表不再自动加载，需显式声明，否则访问未注册表会抛 TableNotExistsException
+  - !SINGLE
+    tables:
+      - ds_0.t_link_stats_today
+      - ds_0.t_link_access_stats
+      - ds_0.t_link_os_stats
+      - ds_0.t_link_device_stats
+      - ds_0.t_link_network_stats
+      - ds_0.t_link_browser_stats
+      - ds_0.t_link_locale_stats
+      - ds_0.t_link_access_logs
+    defaultDataSource: ds_0
   - !SHARDING
     tables:
       t_link:
-        # 真实数据节点，比如数据库源以及数据库在数据库中真实存在的
         actualDataNodes: ds_0.t_link_${0..15}
-        # 分表策略
         tableStrategy:
-          # 用于单分片键的标准分片场景
           standard:
-            # 分片键
             shardingColumn: gid
-            # 分片算法，对应 rules[0].shardingAlgorithms
             shardingAlgorithmName: link_table_hash_mod
       t_link_goto:
-        # 真实数据节点，比如数据库源以及数据库在数据库中真实存在的
         actualDataNodes: ds_0.t_link_goto_${0..15}
-        # 分表策略
         tableStrategy:
-          # 用于单分片键的标准分片场景
           standard:
-            # 分片键
             shardingColumn: full_short_url
-            # 分片算法，对应 rules[0].shardingAlgorithms
             shardingAlgorithmName: link_table_goto_hash_mod
       t_group:
-        # 真实数据节点，比如数据库源以及数据库在数据库中真实存在的
         actualDataNodes: ds_0.t_group_${0..15}
-        # 分表策略
         tableStrategy:
-          # 用于单分片键的标准分片场景
           standard:
-            # 分片键 同一用户的组 都在一个表里 合理
             shardingColumn: username
-            # 分片算法，对应 rules[0].shardingAlgorithms
             shardingAlgorithmName: group_table_hash_mod
-    # 分片算法
     shardingAlgorithms:
-      # 数据表分片算法
       link_table_hash_mod:
-        # 根据分片键 Hash 分片
-        type: HASH_MOD
-        # 分片数量
+        type: INLINE
         props:
-          sharding-count: 16
-      # 数据表分片算法
+          algorithm-expression: t_link_${Math.abs(gid.hashCode()) % 16}
       link_table_goto_hash_mod:
-        # 根据分片键 Hash 分片
-        type: HASH_MOD
-        # 分片数量
+        type: INLINE
         props:
-          sharding-count: 16
+          algorithm-expression: t_link_goto_${Math.abs(full_short_url.hashCode()) % 16}
       group_table_hash_mod:
-        # 根据分片键 Hash 分片
-        type: HASH_MOD
-        # 分片数量
+        type: INLINE
         props:
-          sharding-count: 16
+          algorithm-expression: t_group_${Math.abs(username.hashCode()) % 16}
 
-
-# 展现逻辑 SQL & 真实 SQL
 props:
   sql-show: true

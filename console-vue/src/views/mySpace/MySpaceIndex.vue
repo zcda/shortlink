@@ -785,9 +785,8 @@ const recoverLink = (data) => {
     .recoverLink({ gid, fullShortUrl })
     .then((res) => {
       ElMessage.success('恢复成功')
+      getGroupInfo()
       queryRecycleBinPage()
-      // getGroupInfo(queryPage)
-      getGroupInfo()         //修复短链接恢复会报系统执行出错的问题
     })
     .catch((reason) => {
       ElMessage.error('恢复失败')

@@ -3,6 +3,7 @@ package org.zcdada.shortlink_zc.admin.common.web;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.StrUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -29,8 +30,6 @@ public class GlobalExceptionHandler {
 
     /**
      * 拦截参数验证异常
-     *
-     * 这个类未使用过
      */
     @SneakyThrows
     @ExceptionHandler(value = MethodArgumentNotValidException.class)
@@ -46,10 +45,13 @@ public class GlobalExceptionHandler {
 
     /**
      * 拦截应用内抛出的异常
-     * 自己定义的抽象异常类，可以抛出子类
      */
     @ExceptionHandler(value = {AbstractException.class})
-    public Result abstractException(HttpServletRequest request, AbstractException ex) {
+    public Result abstractException(HttpServletRequest request, HttpServletResponse response, AbstractException ex) {
+        if (response.isCommitted()) {
+            log.error("[{}] {} [ex] {}", request.getMethod(), request.getRequestURL().toString(), ex.toString());
+            return null;
+        }
         if (ex.getCause() != null) {
             log.error("[{}] {} [ex] {}", request.getMethod(), request.getRequestURL().toString(), ex.toString(), ex.getCause());
             return Results.failure(ex);
@@ -60,10 +62,13 @@ public class GlobalExceptionHandler {
 
     /**
      * 拦截未捕获异常
-     * 最底层的，如果写代码的时候没有抛出异常，会在这里捕获，并打印在控制台
      */
     @ExceptionHandler(value = Throwable.class)
-    public Result defaultErrorHandler(HttpServletRequest request, Throwable throwable) {
+    public Result defaultErrorHandler(HttpServletRequest request, HttpServletResponse response, Throwable throwable) {
+        if (response.isCommitted()) {
+            log.error("[{}] {} ", request.getMethod(), getUrl(request), throwable);
+            return null;
+        }
         log.error("[{}] {} ", request.getMethod(), getUrl(request), throwable);
         return Results.failure();
     }

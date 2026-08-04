@@ -21,6 +21,11 @@
     </dependency>
 
     <dependency>
+        <groupId>com.baomidou</groupId>
+        <artifactId>mybatis-plus-jsqlparser</artifactId>
+    </dependency>
+
+    <dependency>
         <groupId>com.mysql</groupId>
         <artifactId>mysql-connector-j</artifactId>
         <scope>runtime</scope>
@@ -45,7 +50,53 @@
     </dependency>
     <dependency>
         <groupId>org.apache.shardingsphere</groupId>
-        <artifactId>shardingsphere-jdbc-core</artifactId>
+        <artifactId>shardingsphere-jdbc</artifactId>
+        <exclusions>
+            <exclusion>
+                <groupId>com.sun.xml.bind</groupId>
+                <artifactId>jaxb-impl</artifactId>
+            </exclusion>
+            <exclusion>
+                <groupId>com.sun.xml.bind</groupId>
+                <artifactId>jaxb-core</artifactId>
+            </exclusion>
+        </exclusions>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.shardingsphere</groupId>
+        <artifactId>shardingsphere-sharding-core</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.shardingsphere</groupId>
+        <artifactId>shardingsphere-encrypt-core</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.shardingsphere</groupId>
+        <artifactId>shardingsphere-single-core</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.shardingsphere</groupId>
+        <artifactId>shardingsphere-infra-data-source-pool-hikari</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.shardingsphere</groupId>
+        <artifactId>shardingsphere-standalone-mode-core</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.shardingsphere</groupId>
+        <artifactId>shardingsphere-standalone-mode-repository-jdbc</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.shardingsphere</groupId>
+        <artifactId>shardingsphere-authority-simple</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.shardingsphere</groupId>
+        <artifactId>shardingsphere-parser-sql-engine-mysql</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.shardingsphere</groupId>
+        <artifactId>shardingsphere-infra-url-classpath</artifactId>
     </dependency>
     <dependency>
         <groupId>com.alibaba.fastjson2</groupId>
@@ -74,6 +125,20 @@
         <groupId>org.springframework.cloud</groupId>
         <artifactId>spring-cloud-loadbalancer</artifactId>
     </dependency>
+
+    <!-- Spring AI OpenAI (DeepSeek API 100% 兼容 OpenAI 格式) -->
+    <dependency>
+        <groupId>org.springframework.ai</groupId>
+        <artifactId>spring-ai-starter-model-openai</artifactId>
+    </dependency>
+
+    <!-- JAXB runtime (javax namespace)，Java 17 需要 -->
+    <dependency>
+        <groupId>org.glassfish.jaxb</groupId>
+        <artifactId>jaxb-runtime</artifactId>
+        <version>2.3.9</version>
+    </dependency>
+
 </dependencies>
 
     <build>

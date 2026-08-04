@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.zcdada.shortlink_zc.admin.common.biz.user.UserContext;
 import org.zcdada.shortlink_zc.admin.common.convention.exception.ClientException;
 import org.zcdada.shortlink_zc.admin.common.convention.exception.ServiceException;
+import org.zcdada.shortlink_zc.admin.common.convention.result.Result;
 import org.zcdada.shortlink_zc.admin.dao.entity.GroupDO;
 import org.zcdada.shortlink_zc.admin.dao.entity.GroupUniqueDO;
 import org.zcdada.shortlink_zc.admin.dao.mapper.GroupMapper;
@@ -32,11 +33,14 @@ import org.zcdada.shortlink_zc.admin.dto.req.ShortLinkGroupSaveReqDTO;
 import org.zcdada.shortlink_zc.admin.dto.req.ShortLinkGroupUpdateReqDTO;
 import org.zcdada.shortlink_zc.admin.dto.resp.ShortLinkGroupRespDTO;
 import org.zcdada.shortlink_zc.admin.remote.ShortLinkActualRemoteService;
+import org.zcdada.shortlink_zc.admin.remote.dto.resp.ShortLinkGroupRemoteRespDTO;
 import org.zcdada.shortlink_zc.admin.remote.ShortLinkRemoteService;
 import org.zcdada.shortlink_zc.admin.service.GroupService;
 import org.zcdada.shortlink_zc.admin.toolkit.RandomGenerator;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -135,8 +139,17 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper,GroupDO> implement
                 .orderByDesc(Arrays.asList(GroupDO::getSortOrder,GroupDO::getUpdateTime));
 
         List<GroupDO> groupList = baseMapper.selectList(wrapper);
-        Map<String, Integer> count = shortLinkRemoteService
-                .shortLinkCount(groupList.stream().map(GroupDO::getGid).collect(Collectors.toList())).getData().getShortLinkGroupRespDTOS();
+        if (CollUtil.isEmpty(groupList)) {
+            saveGroup(UserContext.getUsername(), new ShortLinkGroupSaveReqDTO("默认分组"));
+            groupList = baseMapper.selectList(wrapper);
+        }
+
+        Result<ShortLinkGroupRemoteRespDTO> countResult = shortLinkRemoteService
+                .shortLinkCount(groupList.stream().map(GroupDO::getGid).collect(Collectors.toList()));
+        Map<String, Integer> count = new HashMap<>();
+        if (countResult != null && countResult.getData() != null && countResult.getData().getShortLinkGroupRespDTOS() != null) {
+            count.putAll(countResult.getData().getShortLinkGroupRespDTOS());
+        }
 
         List<ShortLinkGroupRespDTO> result = BeanUtil.copyToList(groupList, ShortLinkGroupRespDTO.class);
         result.forEach(each -> {

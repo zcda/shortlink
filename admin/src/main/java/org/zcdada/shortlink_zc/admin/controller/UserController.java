@@ -42,8 +42,8 @@ public class UserController {
  * @Description: 判断用户是否存在
  * @DateTime: 2025/11/25 16:34
  */
-    @GetMapping("/api/short-link/admin/v1/user/has-username/{username}")
-    public Result<Boolean> hasUsername(@PathVariable("username") String username){
+    @GetMapping("/api/short-link/admin/v1/user/has-username")
+    public Result<Boolean> hasUsername(@RequestParam("username") String username){
         return Results.success(userService.hasUsername(username));
     }
 /**

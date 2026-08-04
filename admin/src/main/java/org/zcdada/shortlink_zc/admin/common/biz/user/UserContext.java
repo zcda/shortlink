@@ -52,6 +52,15 @@ public final class UserContext {
 
 
     /**
+     * 获取上下文中用户信息
+     *
+     * @return 用户信息
+     */
+    public static UserInfoDTO getUser() {
+        return USER_THREAD_LOCAL.get();
+    }
+
+    /**
      * 清理用户上下文
      */
     public static void removeUser() {

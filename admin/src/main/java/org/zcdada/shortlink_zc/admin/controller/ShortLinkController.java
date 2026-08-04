@@ -18,6 +18,7 @@ import org.zcdada.shortlink_zc.admin.remote.dto.req.ShortLinkUpdateReqDTO;
 import org.zcdada.shortlink_zc.admin.remote.dto.resp.*;
 import org.zcdada.shortlink_zc.admin.toolkit.EasyExcelWebUtil;
 
+import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -50,9 +51,9 @@ public class ShortLinkController {
     @PostMapping("/api/short-link/admin/v1/create/batch")
     public void batchCreateShortLink(@RequestBody ShortLinkBatchCreateReqDTO requestParam, HttpServletResponse response) {
         Result<ShortLinkBatchCreateRespDTO> shortLinkBatchCreateRespDTOResult = shortLinkRemoteService.batchCreateShortLink(requestParam);
-        if (shortLinkBatchCreateRespDTOResult.isSuccess()) {
+        if (shortLinkBatchCreateRespDTOResult.isSuccess() && shortLinkBatchCreateRespDTOResult.getData() != null) {
             List<ShortLinkBaseInfoRespDTO> baseLinkInfos = shortLinkBatchCreateRespDTOResult.getData().getBaseLinkInfos();
-            EasyExcelWebUtil.write(response, "批量创建短链接-SaaS短链接系统", ShortLinkBaseInfoRespDTO.class, baseLinkInfos);
+            EasyExcelWebUtil.write(response, "批量创建短链接-SaaS短链接系统", ShortLinkBaseInfoRespDTO.class, baseLinkInfos == null ? Collections.emptyList() : baseLinkInfos);
         }
     }
     /**

@@ -2,6 +2,7 @@ package org.zcdada.shortlink_zc.admin.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.crypto.digest.DigestUtil;
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -92,7 +93,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
         }
         try {
             //redis 布隆过滤器 被缓存清空的情况
-            int insert=baseMapper.insert(BeanUtil.toBean(requestParam, UserDO.class));
+            UserDO userDO = BeanUtil.toBean(requestParam, UserDO.class);
+            userDO.setPassword(DigestUtil.md5Hex(userDO.getPassword() + "zcdada123"));
+            int insert = baseMapper.insert(userDO);
             if(insert < 1) {
                 throw new ClientException(USE_SAVE_ERROR);
             }
@@ -117,7 +120,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
     public UserLoginRespDTO login(UserLoginReqDTO requestParam) {
         LambdaQueryWrapper<UserDO> eq = Wrappers.lambdaQuery(UserDO.class)
                 .eq(UserDO::getUsername, requestParam.getUsername())
-                .eq(UserDO::getPassword, requestParam.getPassword())
+                .eq(UserDO::getPassword, DigestUtil.md5Hex(requestParam.getPassword() + "zcdada123"))
                 .eq(UserDO::getDelFlag, 0);
         UserDO userDO = baseMapper.selectOne(eq);
         if (userDO == null) {

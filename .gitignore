@@ -40,3 +40,8 @@ build/
 ### Personal ###
 简历*.md
 AI-Agent方案.md
+
+### Logs ###
+*.log
+logs/
+derby.log

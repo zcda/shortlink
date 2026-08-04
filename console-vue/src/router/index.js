@@ -38,6 +38,12 @@ const router = createRouter({
           name: 'Mine',
           component: () => import('@/views/mine/MineIndex.vue'),
           meta: { title: '个人中心' }
+        },
+        {
+          path: 'agent',
+          name: 'AiAgent',
+          component: () => import('@/views/ai/AiChatIndex.vue'),
+          meta: { title: 'AI 助手' }
         }
       ]
     }
