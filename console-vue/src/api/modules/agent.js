@@ -7,10 +7,11 @@ const BASE_URL = '/api/short-link/admin/v1'
  * @param {string} message - 用户消息
  * @param {string} sessionId - 会话 ID
  * @param {function} onChunk - 每收到一段文本时回调
- * @param {function} onDone - 流结束时回调
+ * @param {function} onDone - 流结束时回调 (meta: { traceId })
  * @param {function} onError - 出错时回调
+ * @param {function} onMeta - meta 事件回调（traceId 等）
  */
-export function chatStream(message, sessionId, onChunk, onDone, onError) {
+export function chatStream(message, sessionId, onChunk, onDone, onError, onMeta) {
   const token = getToken()
   const username = getUsername()
 
@@ -39,17 +40,26 @@ export function chatStream(message, sessionId, onChunk, onDone, onError) {
       const lines = buffer.split('\n')
       buffer = lines.pop() || ''
 
+      let eventType = null
       for (const line of lines) {
-        if (line.startsWith('data:')) {
+        if (line.startsWith('event:')) {
+          eventType = line.slice(6).trim()
+        } else if (line.startsWith('data:')) {
           const data = line.slice(5).trim()
-          if (data === '[DONE]') {
+          if (eventType === 'meta') {
+            try {
+              const meta = JSON.parse(data)
+              if (onMeta) onMeta(meta)
+            } catch (e) { /* ignore parse error */ }
+          } else if (data === '[DONE]') {
             onDone()
             return
+          } else if (data === '') {
+            onChunk('\n')
+          } else {
+            onChunk(data)
           }
-          onChunk(data)
-        } else if (line.startsWith('event:done')) {
-          onDone()
-          return
+          eventType = null
         }
       }
     }
@@ -57,4 +67,26 @@ export function chatStream(message, sessionId, onChunk, onDone, onError) {
   }).catch((err) => {
     onError(err)
   })
+}
+
+/**
+ * 获取最近调用追踪记录
+ */
+export function fetchTraces() {
+  const token = getToken()
+  const username = getUsername()
+  return fetch(`${BASE_URL}/agent/traces`, {
+    headers: { 'Token': token || '', 'Username': username || '' }
+  }).then(r => r.json()).catch(() => [])
+}
+
+/**
+ * 获取 Agent 健康状态
+ */
+export function fetchAgentHealth() {
+  const token = getToken()
+  const username = getUsername()
+  return fetch(`${BASE_URL}/agent/health`, {
+    headers: { 'Token': token || '', 'Username': username || '' }
+  }).then(r => r.json()).catch(() => ({}))
 }

@@ -9,7 +9,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.client.reactive.JdkClientHttpConnector;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.zcdada.shortlink_zc.admin.agent.trace.AgentTraceAspect;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
@@ -17,6 +19,7 @@ import java.net.http.HttpClient;
 import java.time.Duration;
 
 @Configuration
+@EnableAsync
 @Slf4j
 public class AgentConfig {
 
@@ -35,6 +38,7 @@ public class AgentConfig {
         4. 操作成功时简要告知结果（如短链接地址），失败时说明原因
         5. 始终用中文回复，语气友好简洁
         6. 如果用户的请求超出你的能力范围，礼貌说明并建议替代方案
+        7. 列表类数据用 Markdown 表格展示，增强可读性
         """;
 
     @Bean
@@ -75,5 +79,10 @@ public class AgentConfig {
                 .defaultTools(agentTools)
                 .defaultAdvisors(chatMemoryAdvisor)
                 .build();
+    }
+
+    @Bean
+    public AgentTraceAspect agentTraceAspect(StringRedisTemplate redisTemplate) {
+        return new AgentTraceAspect(redisTemplate);
     }
 }

@@ -17,6 +17,7 @@
     "element-plus": "^2.3.14",
     "js-cookie": "^3.0.5",
     "lodash": "^4.17.21",
+    "marked": "^18.0.9",
     "qrcode": "^1.5.3",
     "sortablejs": "^1.15.0",
     "three": "^0.121.0",

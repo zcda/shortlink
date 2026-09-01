@@ -126,6 +126,12 @@
         <artifactId>spring-cloud-loadbalancer</artifactId>
     </dependency>
 
+    <!-- AOP support for @Aspect and @AgentTrace -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-aop</artifactId>
+    </dependency>
+
     <!-- Spring AI OpenAI (DeepSeek API 100% 兼容 OpenAI 格式) -->
     <dependency>
         <groupId>org.springframework.ai</groupId>

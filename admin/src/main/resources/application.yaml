@@ -28,6 +28,13 @@ spring:
           model: deepseek-v4-pro
           temperature: 0.7
           max-tokens: 4096
+  task:
+    execution:
+      pool:
+        core-size: 2
+        max-size: 4
+        queue-capacity: 50
+      thread-name-prefix: agent-async-
 
 short-link:
   group:
@@ -39,3 +46,16 @@ short-link:
     max-access-count: 20
   agent:
     session-ttl-days: 7
+    model:
+      failure-threshold: 3
+      open-duration-seconds: 30
+      providers:
+        qwen:
+          base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+          api-key: ${QWEN_API_KEY:}
+          model: qwen-plus
+        ollama:
+          base-url: ${OLLAMA_BASE_URL:}
+          api-key: ${OLLAMA_API_KEY:}
+          model: ${OLLAMA_MODEL:qwen3:8b}
+

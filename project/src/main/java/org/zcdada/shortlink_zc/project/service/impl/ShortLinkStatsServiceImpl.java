@@ -224,9 +224,9 @@ public class ShortLinkStatsServiceImpl implements ShortLinkStatsService {
         });
         return ShortLinkStatsRespDTO.builder()
                 .daily(daily)
-                .pv(pvUvUidStatsByShortLink.getPv())
-                .uv(pvUvUidStatsByShortLink.getUv())
-                .uip(pvUvUidStatsByShortLink.getUip())
+                .pv(pvUvUidStatsByShortLink != null ? pvUvUidStatsByShortLink.getPv() : 0)
+                .uv(pvUvUidStatsByShortLink != null ? pvUvUidStatsByShortLink.getUv() : 0)
+                .uip(pvUvUidStatsByShortLink != null ? pvUvUidStatsByShortLink.getUip() : 0)
                 .localeCnStats(localeCnStats)
                 .hourStats(hourStats)
                 .topIpStats(topIpStats)

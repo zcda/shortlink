@@ -20,9 +20,7 @@ public class RedisChatMemory implements ChatMemory {
 
     private static final String KEY_PREFIX = "ai-agent:chat-memory:";
 
-    /**
-     * 每个会话最多保留的消息条数，防止历史无限膨胀导致 token 超限
-     */
+    /** 每个会话最多保留的消息条数 */
     private static final int MAX_MESSAGES = 40;
 
     private final StringRedisTemplate redisTemplate;
@@ -38,7 +36,6 @@ public class RedisChatMemory implements ChatMemory {
     public void add(String conversationId, List<Message> messages) {
         String key = KEY_PREFIX + conversationId;
         for (Message message : messages) {
-            // 工具调用消息没有文本内容，跳过避免存入 null
             String text = message.getText();
             if (StrUtil.isBlank(text)) {
                 continue;
@@ -69,6 +66,10 @@ public class RedisChatMemory implements ChatMemory {
             }
         }
         return messages;
+    }
+
+    public List<Message> getRaw(String conversationId) {
+        return get(conversationId);
     }
 
     @Override
