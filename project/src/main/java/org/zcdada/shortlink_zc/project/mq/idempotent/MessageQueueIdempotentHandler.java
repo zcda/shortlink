@@ -22,7 +22,7 @@ public class MessageQueueIdempotentHandler {
 
     /**
      * 判断当前消息是否消费过
-     *
+     *  没有被消费（第一次见） 则 返回 true
      * @param messageId 消息唯一标识
      * @return 消息是否消费过
      */

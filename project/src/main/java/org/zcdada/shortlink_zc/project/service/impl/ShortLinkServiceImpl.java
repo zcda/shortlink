@@ -1,13 +1,9 @@
 package org.zcdada.shortlink_zc.project.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.date.DateUtil;
-import cn.hutool.core.date.Week;
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.http.HttpUtil;
 import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -19,7 +15,6 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jodd.util.StringUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -36,22 +31,20 @@ import org.zcdada.shortlink_zc.project.common.convention.exception.ClientExcepti
 import org.zcdada.shortlink_zc.project.common.convention.exception.ServiceException;
 import org.zcdada.shortlink_zc.project.common.enums.VailDateTypeEnum;
 import org.zcdada.shortlink_zc.project.config.GotoDomainWhiteListConfiguration;
-import org.zcdada.shortlink_zc.project.dao.entity.*;
-import org.zcdada.shortlink_zc.project.dao.mapper.*;
+import org.zcdada.shortlink_zc.project.dao.entity.ShortLinkDO;
+import org.zcdada.shortlink_zc.project.dao.entity.ShortLinkGotoDO;
+import org.zcdada.shortlink_zc.project.dao.mapper.ShortLinkGotoMapper;
+import org.zcdada.shortlink_zc.project.dao.mapper.ShortLinkMapper;
 import org.zcdada.shortlink_zc.project.dto.biz.ShortLinkStatsRecordDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkBatchCreateReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkCreateReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkPageReqDTO;
 import org.zcdada.shortlink_zc.project.dto.req.ShortLinkUpdateReqDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.*;
-import org.zcdada.shortlink_zc.project.mq.producer.DelayShortLinkStatsProducer;
-import org.zcdada.shortlink_zc.project.mq.producer.ShortLinkStatsSaveProducer;
 import org.zcdada.shortlink_zc.project.mq.producer.ShortLinkStatsSaveProducerRabbitMq;
-import org.zcdada.shortlink_zc.project.service.LinkStatsTodayService;
 import org.zcdada.shortlink_zc.project.service.ShortLinkService;
 import org.zcdada.shortlink_zc.project.service.ShortLinkStatsService;
 import org.zcdada.shortlink_zc.project.service.UrlService;
-import org.zcdada.shortlink_zc.project.toolkit.IpUtils;
 import org.zcdada.shortlink_zc.project.toolkit.LinkUtil;
 import org.zcdada.shortlink_zc.project.toolkit.RandomGenerator;
 
@@ -149,7 +142,7 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
             throw new ServiceException("重复短链接,请稍后再试试");
         }
         stringRedisTemplate.opsForValue().set(String.format(GOTO_SHORT_LINK_KEY,
-                fullShortUrl),
+                        fullShortUrl),
                 shortLinkDO.getOriginUrl(),
                 LinkUtil.getLinkCacheValidTime(shortLinkDO.getValidDate()),
                 TimeUnit.MILLISECONDS
@@ -344,92 +337,121 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
                 .currentDate(new Date())
                 .build();
     }
+    /**
+     * 短链跳转核心方法（访问短链 → 302 跳转到原始长链接）
+     *
+     * 跳转逻辑分层（由快到慢）：
+     *   ① Redis 跳转缓存命中            → 最快，直接跳转（绝大多数请求走这里）
+     *   ② 布隆过滤器                    → 拦截不存在的短链（防缓存穿透 / 黑产）
+     *   ③ 空值缓存                      → 拦截"查过但不存在 / 已过期"的短链（防恶意重复打库）
+     *   ④ 分布式锁单飞（single-flight）→ 缓存未命中时只放一个线程回源数据库，防缓存击穿（惊群）
+     */
     @SneakyThrows
     @Override
     public void restoreUrl(String shortUri, ServletRequest request, ServletResponse response) {
+        // ========== 0. 拼装完整短链地址 ==========
+        // 例：Host=zcdada.ink、端口=8001、shortUri=vdblft → fullShortLink = "zcdada.ink:8001/vdblft"
+        // 注意：这个字符串同时是 Redis 缓存 key 和 DB 里 full_short_url 的组成部分，必须完全一致
         String serverName = request.getServerName();
-
         String serverPort = Optional.of(request.getServerPort())
-                .filter(each -> !Objects.equals(each, 80))
+                .filter(each -> !Objects.equals(each, 80))   // 80 端口是 HTTP 默认，不拼
                 .map(String::valueOf)
                 .map(each -> ":" + each)
                 .orElse("");
+        String fullShortLink = serverName + serverPort + "/" + shortUri;
 
-        String fullShortLink = serverName+serverPort+"/" + shortUri;
-
-        String ori = stringRedisTemplate.opsForValue().get(String.format(GOTO_SHORT_LINK_KEY,fullShortLink));
+        // ========== ① 第一层：读跳转缓存（最快路径，99% 的请求在这返回） ==========
+        String ori = stringRedisTemplate.opsForValue().get(String.format(GOTO_SHORT_LINK_KEY, fullShortLink));
         if (StrUtil.isNotBlank(ori)) {
+            // 缓存命中：说明这个短链存在且未过期 → 记统计 + 302 跳转
             ShortLinkStatsRecordDTO statsRecord = buildLinkStatsRecordAndSetUser(fullShortLink, request, response);
             shortLinkStats(statsRecord);
-            ((HttpServletResponse)response).sendRedirect(ori);
+            ((HttpServletResponse) response).sendRedirect(ori);
             return;
         }
 
+        // ========== ② 布隆过滤器（防缓存穿透 / 黑产） ==========
+        // 布隆里"不存在"= 一定不存在（瞎猜的短码/黑产）→ 直接 404，不打数据库
+        // 注：布隆有 0.1% 误判率，"存在"不代表真存在，还得继续查
         if (!shortLinkCachePenetrationBloomFilter.contains(fullShortLink)) {
-            ((HttpServletResponse)response).sendRedirect("/page/notfound");
+            ((HttpServletResponse) response).sendRedirect("/page/notfound");
             return;
         }
 
-        String s = stringRedisTemplate.opsForValue().get(String.format(GOTO_IS_NULL_SHORT_LINK_KEY, fullShortLink));
-        if (StrUtil.isNotBlank(s)) {
-            ((HttpServletResponse)response).sendRedirect("/page/notfound");
+        // ========== ③ 空值缓存（防恶意重复打库） ==========
+        // 之前查过但"不存在/已过期"的短链会写入空值缓存（"-"，5 分钟）→ 命中直接 404
+        if (StrUtil.isNotBlank(stringRedisTemplate.opsForValue()
+                .get(String.format(GOTO_IS_NULL_SHORT_LINK_KEY, fullShortLink)))) {
+            ((HttpServletResponse) response).sendRedirect("/page/notfound");
             return;
         }
 
+        // ========== ④ 缓存未命中 → 分布式锁单飞（防缓存击穿） ==========
+        // 走到这里说明：缓存没命中、布隆说"可能存在"、无空值缓存 → 可能是个真实短链
+        // 若多个请求同时回源数据库会击穿（惊群）→ Redisson 锁只放一个线程查库，其余等待
+        RLock lock = redissonClient.getLock(String.format(RedisKeyConstant.LOCK_GOTO_SHORT_LINK_KEY, fullShortLink));
+        lock.lock();   // 无限等待拿锁：保证拿到锁的线程一定能完成"回源+回填+跳转"（watchdog 30s 兜底）
 
-        RLock lock = redissonClient.getLock(String.format(RedisKeyConstant.LOCK_GOTO_SHORT_LINK_KEY,fullShortLink));
-        lock.lock();
-
-        ori = stringRedisTemplate.opsForValue().get(String.format(GOTO_SHORT_LINK_KEY,fullShortLink));
-        if (StrUtil.isNotBlank(ori)) {
-            ShortLinkStatsRecordDTO statsRecord = buildLinkStatsRecordAndSetUser(fullShortLink, request, response);
-            shortLinkStats(statsRecord);
-            ((HttpServletResponse)response).sendRedirect(ori);
-            return;
-        }
-
-        try{
-
+        try {
+            // ========== ⑤ 二次检查缓存（Double-Check） ==========
+            // 等锁期间别的线程可能已回填缓存 → 再查一次，命中就直接跳转，省一次 DB 查询
+            // ✅ 已移进 try 内：任何 return 路径都会先经过 finally 释放锁（修复锁泄漏 Bug）
+            ori = stringRedisTemplate.opsForValue().get(String.format(GOTO_SHORT_LINK_KEY, fullShortLink));
+            if (StrUtil.isNotBlank(ori)) {
+                ShortLinkStatsRecordDTO statsRecord = buildLinkStatsRecordAndSetUser(fullShortLink, request, response);
+                shortLinkStats(statsRecord);
+                ((HttpServletResponse) response).sendRedirect(ori);
+                return;
+            }
+            // ========== ⑥ 查路由表 t_link_goto（short_uri → gid） ==========
+            // 按完整短链地址查"短链 → 分组"索引，定位 gid
             LambdaQueryWrapper<ShortLinkGotoDO> gotoDOLambdaQueryWrapper = Wrappers.lambdaQuery(ShortLinkGotoDO.class)
                     .eq(ShortLinkGotoDO::getFullShortUrl, fullShortLink);
             ShortLinkGotoDO shortLinkGotoDO = shortLinkGotoMapper.selectOne(gotoDOLambdaQueryWrapper);
 
-            if(shortLinkGotoDO==null||!shortLinkCachePenetrationBloomFilter.contains(fullShortLink)){
-                //做风控 可能是有人恶意请求错误短链接
-                // 把错误的也放到缓存中，防止一直访问数据库
-                stringRedisTemplate.opsForValue().set(String.format(GOTO_IS_NULL_SHORT_LINK_KEY,fullShortLink),"-",5, TimeUnit.MINUTES);
-                ((HttpServletResponse)response).sendRedirect("/page/notfound");
+            if (shortLinkGotoDO == null || !shortLinkCachePenetrationBloomFilter.contains(fullShortLink)) {
+                // 路由表查不到 / 布隆误判 → 非法短链（恶意请求）
+                // 风控：写入空值缓存 5 分钟，防止每次都打数据库
+                stringRedisTemplate.opsForValue().set(
+                        String.format(GOTO_IS_NULL_SHORT_LINK_KEY, fullShortLink), "-", 5, TimeUnit.MINUTES);
+                ((HttpServletResponse) response).sendRedirect("/page/notfound");
                 return;
             }
 
+            // ========== ⑦ 查主表 t_link（拿原始链接 + 有效期） ==========
             LambdaQueryWrapper<ShortLinkDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkDO.class)
                     .eq(ShortLinkDO::getFullShortUrl, fullShortLink)
-                    .eq(ShortLinkDO::getDelFlag, 0)
-                    .eq(ShortLinkDO::getEnableStatus, 0)
+                    .eq(ShortLinkDO::getDelFlag, 0)        // 未删除
+                    .eq(ShortLinkDO::getEnableStatus, 0)   // 启用中
                     .eq(ShortLinkDO::getGid, shortLinkGotoDO.getGid());
             ShortLinkDO shortLinkDO = baseMapper.selectOne(queryWrapper);
 
-            if (shortLinkDO==null||(shortLinkDO.getValidDate()!=null&&shortLinkDO.getValidDate().before(new Date()))){
-                    //数据过期
-                    stringRedisTemplate.opsForValue().set(String.format(GOTO_IS_NULL_SHORT_LINK_KEY,fullShortLink),"-",5, TimeUnit.MINUTES);
-                    ((HttpServletResponse)response).sendRedirect("/page/notfound");
-                    return;
+            if (shortLinkDO == null || (shortLinkDO.getValidDate() != null && shortLinkDO.getValidDate().before(new Date()))) {
+                // 主表查不到 / 已过有效期 → 当作不存在，同样回填空值缓存 5 分钟
+                stringRedisTemplate.opsForValue().set(
+                        String.format(GOTO_IS_NULL_SHORT_LINK_KEY, fullShortLink), "-", 5, TimeUnit.MINUTES);
+                ((HttpServletResponse) response).sendRedirect("/page/notfound");
+                return;
             }
 
+            // ========== ⑧ 回填跳转缓存 ==========
+            // 查库成功 → 写回 Redis（key=完整短链地址，value=原始长链接）
+            // TTL：永久链接=DEFAULT_CACHE_TIME(2628000ms≈43.8分钟)，有有效期=到有效期为止
+            // ⚠️ 43.8 分钟意味着"永久"短链缓存也会中途过期 → 过期瞬间触发回源（压测 48 超时的诱因）
+            stringRedisTemplate.opsForValue().set(
+                    String.format(GOTO_SHORT_LINK_KEY, shortLinkDO.getFullShortUrl()),
+                    shortLinkDO.getOriginUrl(),
+                    LinkUtil.getLinkCacheValidTime(shortLinkDO.getValidDate()),
+                    TimeUnit.MILLISECONDS);
 
-            stringRedisTemplate.opsForValue().set(String.format(GOTO_SHORT_LINK_KEY,
-                                shortLinkDO.getFullShortUrl()),
-                        shortLinkDO.getOriginUrl(),
-                        LinkUtil.getLinkCacheValidTime(shortLinkDO.getValidDate()),
-                        TimeUnit.MILLISECONDS
-                );
+            // ========== ⑨ 记统计 + 302 跳转 ==========
+            // ⚠️ 统计发送在锁内且同步：若 RabbitMQ 流控，会卡住持锁线程（第二个隐患，建议移到锁外）
             ShortLinkStatsRecordDTO statsRecord = buildLinkStatsRecordAndSetUser(fullShortLink, request, response);
             shortLinkStats(statsRecord);
-            ((HttpServletResponse)response).sendRedirect(shortLinkDO.getOriginUrl());
+            ((HttpServletResponse) response).sendRedirect(shortLinkDO.getOriginUrl());
 
-
-        }finally {
-            lock.unlock();
+        } finally {
+            lock.unlock();   // ========== ⑩ 释放锁（保护 ⑤⑥⑦⑧⑨：双重检查 + 回源逻辑，必然执行） ==========
         }
     }
 

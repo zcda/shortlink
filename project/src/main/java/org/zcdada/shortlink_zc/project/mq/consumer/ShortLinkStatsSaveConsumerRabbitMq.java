@@ -38,7 +38,6 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.zcdada.shortlink_zc.project.common.constant.RedisKeyConstant.LOCK_GID_UPDATE_KEY;
 import static org.zcdada.shortlink_zc.project.common.constant.ShortLinkConstant.AMAP_REMOTE_URL;
@@ -145,6 +144,7 @@ public class ShortLinkStatsSaveConsumerRabbitMq {
             }
         }
     }
+
     public void actualSaveShortLinkStats(ShortLinkStatsRecordDTO statsRecord) {
         String fullShortUrl = statsRecord.getFullShortUrl();
         RReadWriteLock readWriteLock = redissonClient.getReadWriteLock(String.format(LOCK_GID_UPDATE_KEY, fullShortUrl));

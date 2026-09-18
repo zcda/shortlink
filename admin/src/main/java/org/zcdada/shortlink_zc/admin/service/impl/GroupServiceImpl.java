@@ -9,8 +9,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBloomFilter;
@@ -34,12 +32,10 @@ import org.zcdada.shortlink_zc.admin.dto.req.ShortLinkGroupUpdateReqDTO;
 import org.zcdada.shortlink_zc.admin.dto.resp.ShortLinkGroupRespDTO;
 import org.zcdada.shortlink_zc.admin.remote.ShortLinkActualRemoteService;
 import org.zcdada.shortlink_zc.admin.remote.dto.resp.ShortLinkGroupRemoteRespDTO;
-import org.zcdada.shortlink_zc.admin.remote.ShortLinkRemoteService;
 import org.zcdada.shortlink_zc.admin.service.GroupService;
 import org.zcdada.shortlink_zc.admin.toolkit.RandomGenerator;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -90,7 +86,7 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper,GroupDO> implement
             Integer count = 0;
             String gid = null;
             //查找可用gid
-            while (count<groupMaxRetryNum){
+            while (count < groupMaxRetryNum){
                 gid = saveGroupUniqueReturnGid();
                 if (!gidRegisterCachePenetrationBloomFilter.contains(gid)){
                     break;
@@ -102,11 +98,11 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper,GroupDO> implement
             }
 
             GroupDO groupDO = GroupDO.builder()
-                .gid(gid)
-                .name(requestParam.getName())
-                .username(username)
-                .sortOrder(0)
-                .build();
+                    .gid(gid)
+                    .name(requestParam.getName())
+                    .username(username)
+                    .sortOrder(0)
+                    .build();
             baseMapper.insert(groupDO);
             gidRegisterCachePenetrationBloomFilter.add(gid);
         }finally {
