@@ -27,7 +27,6 @@ spring:
     port: 5672
     username: guest
     password: guest
-    virtual-host: short-link
     listener:
       simple:
         acknowledge-mode: manual          # 手动确认
@@ -40,19 +39,20 @@ spring:
 short-link:
   stats:
     locale:
-      amap-key: 956be1236b9d4f2011a8fd5c50c082a0
+      # 高德开放平台 Web 服务 key，通过环境变量注入，勿提交到仓库
+      amap-key: ${AMAP_KEY:}
   domain:
     default: zcdada.ink:8001
   goto-domain:
     white-list:
       enable: true
-      names: '拿个offer,知乎,掘金,博客园,deepseek'
+      names: '百度,必应,知乎,掘金,博客园'
       details:
-        - nageoffer.com
+        - baidu.com
+        - bing.com
         - zhihu.com
         - juejin.cn
         - cnblogs.com
-        - deepseek.com
 
 
 mybatis-plus:
