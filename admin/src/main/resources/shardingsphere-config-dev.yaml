@@ -56,7 +56,7 @@ rules:
       common_encryptor:
         type: AES
         props:
-          aes-key-value: zcdada-23sadaw2sdd
+          aes-key-value: $${AES_KEY::}
           digest-algorithm-name: SHA-256
 
 props:
