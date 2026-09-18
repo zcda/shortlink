@@ -50,12 +50,21 @@ short-link:
       failure-threshold: 3
       open-duration-seconds: 30
       providers:
+        ollama:
+          order: 10
+          # 注意：Spring AI(OpenAI 协议)会自动在 base-url 后补 /v1/chat/completions，
+          # 因此这里【不要】带 /v1 后缀，否则会拼出 /v1/v1/chat/completions → 404
+          base-url: ${OLLAMA_BASE_URL:http://127.0.0.1:11434}
+          api-key: ${OLLAMA_API_KEY:}
+          # 本地实际已 pull 的模型（qwen3:8b 未下载）：deepseek-r1:14b / llama3.1:8b / qwen3:14b
+          # AI 助手需要函数调用能力，优先用 qwen3 系列或 llama3.1，不要用 deepseek-r1(推理模型不支持好工具调用)
+          model: ${OLLAMA_MODEL:qwen3:14b}
+          # 本地模型无需鉴权：不设 OLLAMA_API_KEY 也能注册
+          api-key-required: false
         qwen:
-          base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+          order: 20
+          # 同上：不要带 /v1 后缀，Spring AI 会自动拼
+          base-url: https://dashscope.aliyuncs.com/compatible-mode
           api-key: ${QWEN_API_KEY:}
           model: qwen-plus
-        ollama:
-          base-url: ${OLLAMA_BASE_URL:}
-          api-key: ${OLLAMA_API_KEY:}
-          model: ${OLLAMA_MODEL:qwen3:8b}
 

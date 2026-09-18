@@ -2,9 +2,16 @@
   <div class="ai-chat-container">
     <div class="chat-header">
       <span class="chat-title">AI 智能助手</span>
-      <el-tag size="small" :type="modelStatus === 'degraded' ? 'warning' : 'success'" effect="plain">
-        {{ modelStatus === 'degraded' ? '备选模型' : 'DeepSeek 主模型' }}
-      </el-tag>
+      <el-select v-model="modelChoice" size="small" class="model-select" :disabled="loading">
+        <el-option label="🔄 自动切换（主模型优先，失败自动降级）" value="auto" />
+        <el-option
+          v-for="m in models"
+          :key="m.id"
+          :label="modelOptionLabel(m)"
+          :value="m.id"
+          :disabled="m.state === 'OPEN'"
+        />
+      </el-select>
       <el-tooltip content="多模型路由 + 熔断保护" placement="bottom">
         <el-tag size="small" type="info" effect="plain" style="cursor: help">🛡 多模型路由</el-tag>
       </el-tooltip>
@@ -79,17 +86,18 @@
 
 <script setup>
 import { ref, nextTick, onMounted, watch } from 'vue'
-import { chatStream, fetchTraces } from '@/api/modules/agent'
+import { chatStream, fetchTraces, fetchModels } from '@/api/modules/agent'
 import { ElMessage } from 'element-plus'
 import { marked } from 'marked'
 
 marked.setOptions({
-  breaks: true,
+  // 关闭 breaks：单换行按 GFM 视为普通空格，避免模型在段内换行时渲染出一堆 <br>
   gfm: true
 })
 
 const SESSION_KEY = 'ai-agent-session'
 const HISTORY_KEY = 'ai-agent-chat-history'
+const MODEL_KEY = 'ai-agent-model'
 
 const messages = ref([])
 const inputText = ref('')
@@ -99,7 +107,8 @@ const chatBody = ref(null)
 const sessionId = ref(localStorage.getItem(SESSION_KEY) || '')
 const showTraces = ref(false)
 const traces = ref([])
-const modelStatus = ref('primary')
+const modelChoice = ref(localStorage.getItem(MODEL_KEY) || 'auto')
+const models = ref([])
 
 function generateSessionId() {
   return 'session-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8)
@@ -123,14 +132,33 @@ onMounted(() => {
     } catch (e) {}
   }
   refreshTraces()
+  refreshModels()
 })
 
 watch(messages, saveHistory, { deep: true })
+// 记住用户选择的模型
+watch(modelChoice, v => localStorage.setItem(MODEL_KEY, v))
 
 async function refreshTraces() {
   try {
     traces.value = await fetchTraces()
   } catch (e) {}
+}
+
+async function refreshModels() {
+  try {
+    models.value = await fetchModels()
+    // 若已保存的选择已不存在（配置变更），回退自动切换
+    if (modelChoice.value !== 'auto' && !models.value.some(m => m.id === modelChoice.value)) {
+      modelChoice.value = 'auto'
+    }
+  } catch (e) {}
+}
+
+// 下拉选项文案：名称 · 真实模型名（熔断中则标出并禁用）
+function modelOptionLabel(m) {
+  const stateText = m.state === 'OPEN' ? '（熔断中）' : m.state === 'HALF_OPEN' ? '（恢复探测中）' : ''
+  return `${m.name} · ${m.model}${stateText}`
 }
 
 async function sendMessage() {
@@ -149,6 +177,7 @@ async function sendMessage() {
   chatStream(
     text,
     sessionId.value,
+    modelChoice.value,
     // onChunk
     (chunk) => {
       currentAssistantMsg.value += chunk
@@ -172,15 +201,16 @@ async function sendMessage() {
       loading.value = false
       currentAssistantMsg.value = ''
       refreshTraces()
+      refreshModels()
     },
     // onError
     (err) => {
       console.error('Agent chat error:', err)
-      modelStatus.value = 'degraded'
-      ElMessage.error('请求失败，请稍后重试')
+      ElMessage.error((err && err.message) || '请求失败，请稍后重试')
       loading.value = false
       currentAssistantMsg.value = ''
       refreshTraces()
+      refreshModels()
     },
     // onMeta
     (meta) => {
@@ -235,6 +265,10 @@ async function scrollToBottom() {
   font-size: 18px;
   font-weight: 600;
   color: #303133;
+}
+
+.model-select {
+  width: 230px;
 }
 
 .chat-body {

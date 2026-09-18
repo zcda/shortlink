@@ -25,6 +25,22 @@ public class ModelHealthService {
 
     private static final String KEY_PREFIX = "ai-agent:model-health:";
 
+    /**
+     * 只读查询当前熔断状态（无副作用，不推进状态机）。
+     * @return CLOSED / OPEN / HALF_OPEN
+     */
+    public String getState(String modelName) {
+        String openKey = KEY_PREFIX + modelName + ":open";
+        String openFlag = redisTemplate.opsForValue().get(openKey);
+        if (openFlag == null) {
+            return Boolean.TRUE.equals(redisTemplate.hasKey(KEY_PREFIX + modelName + ":half-open"))
+                    ? "HALF_OPEN" : "CLOSED";
+        }
+        long openMs = properties.getOpenDurationSeconds() * 1000L;
+        boolean cooledDown = System.currentTimeMillis() - Long.parseLong(openFlag) >= openMs;
+        return cooledDown ? "HALF_OPEN" : "OPEN";
+    }
+
     public boolean allowCall(String modelName) {
         String failKey = KEY_PREFIX + modelName + ":fails";
         String openKey = KEY_PREFIX + modelName + ":open";

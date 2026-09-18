@@ -26,5 +26,11 @@ public class AgentModelProperties {
         private String model;
         private int timeoutSeconds = 30;
         private int maxTokens = 4096;
+
+        /** 备选模型尝试优先级：数字越小越先被尝试；相同时保持配置文件书写顺序 */
+        private int order = 100;
+
+        /** 是否强制要求 api-key。本地模型（如 Ollama）不需要鉴权，可配 false */
+        private boolean apiKeyRequired = true;
     }
 }
