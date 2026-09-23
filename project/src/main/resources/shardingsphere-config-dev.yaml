@@ -10,6 +10,10 @@ dataSources:
     url: jdbc:mysql://127.0.0.1:3306/link_zc?useUnicode=true&characterEncoding=UTF-8&rewriteBatchedStatements=true&allowMultiQueries=true&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
     password: root
+    dataSourceProperties:
+      maximumPoolSize: ${DB_MAX_POOL_SIZE:32}
+      minimumIdle: ${DB_MIN_IDLE:8}
+      connectionTimeout: ${DB_CONNECTION_TIMEOUT:30000}
 
 rules:
   # 5.4.0+ 单表不再自动加载，需显式声明，否则访问未注册表会抛 TableNotExistsException

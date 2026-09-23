@@ -30,6 +30,9 @@ spring:
     listener:
       simple:
         acknowledge-mode: manual          # 手动确认
+        concurrency: ${RABBITMQ_CONCURRENCY:8}
+        max-concurrency: ${RABBITMQ_MAX_CONCURRENCY:8}
+        prefetch: ${RABBITMQ_PREFETCH:100}
         retry:
           enabled: true                   # 开启重试
           max-attempts: 3                  # 最大重试次数
@@ -38,7 +41,12 @@ spring:
 
 short-link:
   stats:
+    # mq：异步投递 RabbitMQ；sync：跳转请求线程同步写入统计表
+    mode: ${SHORT_LINK_STATS_MODE:mq}
     locale:
+      enabled: ${SHORT_LINK_STATS_LOCALE_ENABLED:true}
+      cache-enabled: ${SHORT_LINK_STATS_LOCALE_CACHE_ENABLED:true}
+      cache-ttl-seconds: ${SHORT_LINK_STATS_LOCALE_CACHE_TTL:86400}
       # 高德开放平台 Web 服务 key，通过环境变量注入，勿提交到仓库
       amap-key: ${AMAP_KEY:}
   domain:

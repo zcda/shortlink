@@ -43,6 +43,7 @@ import org.zcdada.shortlink_zc.project.dto.req.ShortLinkUpdateReqDTO;
 import org.zcdada.shortlink_zc.project.dto.resp.*;
 import org.zcdada.shortlink_zc.project.mq.producer.ShortLinkStatsSaveProducerRabbitMq;
 import org.zcdada.shortlink_zc.project.service.ShortLinkService;
+import org.zcdada.shortlink_zc.project.service.ShortLinkStatsPersistenceService;
 import org.zcdada.shortlink_zc.project.service.ShortLinkStatsService;
 import org.zcdada.shortlink_zc.project.service.UrlService;
 import org.zcdada.shortlink_zc.project.toolkit.LinkUtil;
@@ -71,10 +72,13 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
 
     private final UrlService urlService;
     private final ShortLinkStatsService shortLinkStatsService;
+    private final ShortLinkStatsPersistenceService shortLinkStatsPersistenceService;
 
 
     private final GotoDomainWhiteListConfiguration gotoDomainWhiteListConfiguration;
     private final ShortLinkStatsSaveProducerRabbitMq shortLinkStatsSaveProducer;
+    @Value("${short-link.stats.mode:mq}")
+    private String statsMode;
 
 
     @Value("${short-link.domain.default}")
@@ -489,6 +493,11 @@ public class ShortLinkServiceImpl  extends ServiceImpl<ShortLinkMapper, ShortLin
      */
     @Override
     public void shortLinkStats(ShortLinkStatsRecordDTO statsRecord){
+
+        if ("sync".equalsIgnoreCase(statsMode)) {
+            shortLinkStatsPersistenceService.save(statsRecord);
+            return;
+        }
 
         Map<String, String> producerMap = new HashMap<>();
         producerMap.put("statsRecord", JSON.toJSONString(statsRecord));
